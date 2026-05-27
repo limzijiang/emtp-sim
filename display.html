@@ -1059,88 +1059,42 @@ class MonitorAudio {
 
 const monitorAudio = new MonitorAudio();
 
-// =================== Breath sound synthesis (wheeze / stridor) ===================
+// =================== Breath sounds (real recordings, CC BY-SA 3.0 by Dr. James Heilman) ===================
 class BreathSound {
-  constructor(audio) {
-    this.audio = audio;
-    this.active = null;       // null | 'wheeze' | 'stridor'
-    this.noiseSource = null;
-    this.filter = null;
-    this.gain = null;
-    this.nextCycle = null;
+  constructor() {
+    this.active = null;
+    this.elements = {};
+  }
+  ensure(type) {
+    if (this.elements[type]) return;
+    const el = new Audio(`audio/${type}.ogg`);
+    el.loop = true;
+    el.preload = 'auto';
+    el.volume = type === 'wheeze' ? 0.85 : 0.85;
+    this.elements[type] = el;
+  }
+  setMuted(m) {
+    for (const el of Object.values(this.elements)) el.muted = m;
   }
   start(type) {
-    if (!this.audio.ctx) return;
     if (this.active === type) return;
     this.stop();
+    this.ensure(type);
     this.active = type;
-    const ctx = this.audio.ctx;
-    // White-noise buffer source (looped)
-    const bufLen = ctx.sampleRate * 2;
-    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * 0.6;
-    this.noiseSource = ctx.createBufferSource();
-    this.noiseSource.buffer = buf;
-    this.noiseSource.loop = true;
-    // Bandpass filter
-    this.filter = ctx.createBiquadFilter();
-    this.filter.type = 'bandpass';
-    if (type === 'wheeze') {
-      this.filter.frequency.value = 650;
-      this.filter.Q.value = 9;       // narrow band → musical whistle
-    } else { // stridor
-      this.filter.frequency.value = 340;
-      this.filter.Q.value = 4.5;     // wider → harsh crowing
-    }
-    this.gain = ctx.createGain();
-    this.gain.gain.value = 0;
-    this.noiseSource.connect(this.filter);
-    this.filter.connect(this.gain);
-    this.gain.connect(this.audio.master);
-    this.noiseSource.start();
-    this.scheduleCycle();
-  }
-  scheduleCycle() {
-    if (!this.active || !this.gain) return;
-    const ctx = this.audio.ctx;
-    const t = ctx.currentTime;
-    const rr = Math.max(8, Math.min(60, state.vitals.rr || 16));
-    const cycle = 60 / rr;
-    const g = this.gain.gain;
-    g.cancelScheduledValues(t);
-    if (this.active === 'wheeze') {
-      // Expiratory wheeze: silent during inspiration (0 - 0.40 cycle), louder during expiration (0.45 - 0.95)
-      g.setValueAtTime(0.005, t);
-      g.linearRampToValueAtTime(0.005, t + 0.40 * cycle);
-      g.linearRampToValueAtTime(0.20, t + 0.55 * cycle);
-      g.setValueAtTime(0.20, t + 0.85 * cycle);
-      g.linearRampToValueAtTime(0.005, t + 0.97 * cycle);
-    } else if (this.active === 'stridor') {
-      // Inspiratory stridor: loud during inspiration (0.05 - 0.38), softer/silent during expiration
-      g.setValueAtTime(0.005, t);
-      g.linearRampToValueAtTime(0.24, t + 0.10 * cycle);
-      g.setValueAtTime(0.24, t + 0.32 * cycle);
-      g.linearRampToValueAtTime(0.005, t + 0.40 * cycle);
-    }
-    this.nextCycle = setTimeout(() => this.scheduleCycle(), cycle * 1000);
+    const el = this.elements[type];
+    el.muted = monitorAudio.muted;
+    el.currentTime = 0;
+    el.play().catch(e => console.warn('breath audio play failed', e));
   }
   stop() {
-    if (this.nextCycle) { clearTimeout(this.nextCycle); this.nextCycle = null; }
-    if (this.gain) {
-      try { this.gain.gain.cancelScheduledValues(this.audio.ctx.currentTime); this.gain.gain.value = 0; } catch {}
+    for (const el of Object.values(this.elements)) {
+      try { el.pause(); el.currentTime = 0; } catch {}
     }
-    if (this.noiseSource) {
-      try { this.noiseSource.stop(); } catch {}
-      this.noiseSource = null;
-    }
-    if (this.filter) { try { this.filter.disconnect(); } catch {} this.filter = null; }
-    if (this.gain) { try { this.gain.disconnect(); } catch {} this.gain = null; }
     this.active = null;
   }
 }
 
-const breathSound = new BreathSound(monitorAudio);
+const breathSound = new BreathSound();
 
 function syncBreathSound() {
   if (!monitorAudio.ctx) return;
@@ -1210,6 +1164,7 @@ soundBtn.addEventListener('click', () => {
     return;
   }
   monitorAudio.setMuted(!monitorAudio.muted);
+  breathSound.setMuted(monitorAudio.muted);
   soundBtn.classList.toggle('muted', monitorAudio.muted);
   soundBtn.classList.toggle('enabled', !monitorAudio.muted);
   soundBtn.textContent = monitorAudio.muted ? '🔇 靜音 (點擊解除)' : '🔊 監視器聲音 ON';

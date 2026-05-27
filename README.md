@@ -69,6 +69,12 @@ control:  https://your-domain.com/control.html?s=mycase01
 
 異位：PVC、二聯律、PAC。
 
+## 第三方音源 / 圖片授權
+
+- 呼吸音 `audio/wheeze.ogg` 和 `audio/stridor.ogg` 來自 Wikimedia Commons，作者 James Heilman, MD，授權 **CC BY-SA 3.0**
+  - 原始檔：[Wheeze2O_noise_reduced.ogg](https://commons.wikimedia.org/wiki/File:Wheeze2O_noise_reduced.ogg) / [Stridor_2OGG.ogg](https://commons.wikimedia.org/wiki/File:Stridor_2OGG.ogg)
+- 病人圖片 (`images/`) 由 OpenAI gpt-image-1 生成，依案例需求建立
+
 ## 客製化
 
 直接編輯 HTML 即可。重要參數：
