@@ -216,6 +216,65 @@
   .preset-card h4 { margin: 0 0 6px; color: #6cf; font-size: 14px; }
   .preset-card p { margin: 0; color: #8b949e; font-size: 12px; line-height: 1.4; }
 
+  .case-summary {
+    font-size: 13px;
+    color: #c9d1d9;
+    line-height: 1.55;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: #0d1117;
+    border-radius: 6px;
+    border-left: 3px solid #1f6feb;
+  }
+  .segment-card {
+    background: #21262d;
+    border: 1px solid #2a2f38;
+    border-left: 4px solid #58a6ff;
+    padding: 12px 14px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .segment-card:active { background: #2d333b; }
+  .segment-card.warn { border-left-color: #f85149; }
+  .segment-card.good { border-left-color: #3fb950; }
+  .seg-title {
+    font-weight: 600;
+    color: #58a6ff;
+    font-size: 14px;
+    margin-bottom: 5px;
+  }
+  .segment-card.warn .seg-title { color: #f85149; }
+  .segment-card.good .seg-title { color: #3fb950; }
+  .seg-vitals {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #c9d1d9;
+    margin-bottom: 4px;
+    word-spacing: 1px;
+  }
+  .seg-note {
+    font-size: 12px;
+    color: #8b949e;
+    line-height: 1.4;
+  }
+  .case-action-btn {
+    background: #1f6feb;
+    color: #fff;
+    border: 0;
+    padding: 10px 16px;
+    border-radius: 6px;
+    width: 100%;
+    font-size: 14px;
+    margin-top: 4px;
+  }
+  .case-action-btn.secondary {
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #2a2f38;
+  }
+
   .quick-actions {
     display: flex; gap: 6px;
     flex-wrap: wrap;
@@ -657,51 +716,47 @@
     <!-- ============ SCENARIOS TAB ============ -->
     <div class="tab-pane" data-tab="scenarios">
       <div class="section">
-        <h3>情境預設</h3>
-        <div class="preset-card" onclick="loadScenario('stemi')">
-          <h4>急性下壁心肌梗塞</h4>
-          <p>58M 胸痛 30 分鐘，HR 88, BP 145/88, SpO₂ 96%, II/III/aVF ST 抬高</p>
+        <h3>教案 1：3 歲男童癲癇重積狀態</h3>
+        <div class="case-summary">
+          <strong>3 歲 / 15 kg 男童</strong>，已知癲癇病史 (停 Levetiracetam 2 週)。<br>
+          家屬報案：突發全身強直 - 陣攣抽搐 (GTC) 持續 <strong>7 分鐘未停止</strong>，曾嘔吐、口吐白沫。
         </div>
-        <div class="preset-card" onclick="loadScenario('vfib_arrest')">
-          <h4>VF 心跳停止</h4>
-          <p>意識喪失，無脈搏，V-Fib，需立即除顫 + CPR</p>
+        <button class="case-action-btn" onclick="loadCasePatient()">↻ 載入此案病人資料 + 重置時序</button>
+        <div class="small-hint" style="margin-top:8px">點任一階段按鈕即可一鍵套用該時段的全部生命徵象與心律。</div>
+      </div>
+
+      <div class="section">
+        <h3>vital sign 套組 · 依時序</h3>
+        <div class="segment-card" onclick="loadSegment(0)">
+          <div class="seg-title">① 到場：抽搐中</div>
+          <div class="seg-vitals">HR 125 · BP 95/60 · SpO₂ 97 · RR 24 · 37.6°C · Sinus Tach</div>
+          <div class="seg-note">GTC 抽搐持續，口吐白沫、gurgling，瞳孔 3.5+/3.5+，GCS 無法評估，血糖暫無法測</div>
         </div>
-        <div class="preset-card" onclick="loadScenario('svt')">
-          <h4>SVT</h4>
-          <p>HR 180, 心悸，BP 110/70，意識清楚</p>
+        <div class="segment-card warn" onclick="loadSegment(1)">
+          <div class="seg-title">② 持續抽搐：SpO₂ 下降</div>
+          <div class="seg-vitals">HR 130 · BP 100/65 · SpO₂ 90 · RR 28 · 37.7°C · Sinus Tach</div>
+          <div class="seg-note">胸廓起伏淺、出現發紺。<em>升級到 BVM 輔助通氣</em></div>
         </div>
-        <div class="preset-card" onclick="loadScenario('chb')">
-          <h4>完全房室阻斷</h4>
-          <p>HR 35, BP 90/55, 頭暈，3° AVB</p>
+        <div class="segment-card" onclick="loadSegment(2)">
+          <div class="seg-title">③ Midazolam 5mg IM → 抽搐停止</div>
+          <div class="seg-vitals">HR 110 · BP 88/55 · SpO₂ 96 · RR 14 · 37.5°C · Sinus Tach</div>
+          <div class="seg-note">Postictal · GCS E1M1V1 · 血糖 52 mg/dL (低血糖) · 持續給氧</div>
         </div>
-        <div class="preset-card" onclick="loadScenario('asthma')">
-          <h4>嚴重氣喘</h4>
-          <p>HR 130, RR 30, SpO₂ 86%, EtCO₂ 55, wheezing</p>
+        <div class="segment-card warn" onclick="loadSegment(3)">
+          <div class="seg-title">④ BZD 副作用 + 低血糖未矯正 (惡化分支)</div>
+          <div class="seg-vitals">HR 92 · BP 75/45 · SpO₂ 85 · RR 6 · 37.4°C · NSR</div>
+          <div class="seg-note">⚠️ 呼吸抑制 + 低血壓 + 低血糖未處置 → 立刻 BVM + D10W</div>
         </div>
-        <div class="preset-card" onclick="loadScenario('septic')">
-          <h4>敗血性休克</h4>
-          <p>HR 130, BP 78/45, T 39.2, SpO₂ 92%, lactate 4.8</p>
+        <div class="segment-card good" onclick="loadSegment(4)">
+          <div class="seg-title">⑤ D10W 75 mL IV → 恢復穩定</div>
+          <div class="seg-vitals">HR 100 · BP 95/60 · SpO₂ 99 · RR 16 · 37.0°C · NSR</div>
+          <div class="seg-note">血糖回升 94 mg/dL，意識緩慢恢復，後送中保暖 + O₂ + ECG 監測</div>
         </div>
-        <div class="preset-card" onclick="loadScenario('trauma')">
-          <h4>多重外傷</h4>
-          <p>HR 130, BP 88/56, SpO₂ 94%, GCS E2V3M5</p>
-        </div>
-        <div class="preset-card" onclick="loadScenario('opioid')">
-          <h4>鴉片類過量</h4>
-          <p>HR 56, RR 6, SpO₂ 82%, 瞳孔縮小</p>
-        </div>
-        <div class="preset-card" onclick="loadScenario('hypoglycemia')">
-          <h4>低血糖</h4>
-          <p>意識不清，血糖 38 mg/dL，HR 110, 冷汗</p>
-        </div>
-        <div class="preset-card" onclick="loadScenario('dka')">
-          <h4>糖尿病酮酸中毒</h4>
-          <p>HR 122, RR 28 (Kussmaul), SpO₂ 99%, 血糖 520</p>
-        </div>
-        <div class="preset-card" onclick="loadScenario('normal')">
-          <h4>正常（重置）</h4>
-          <p>恢復為正常生命徵象</p>
-        </div>
+      </div>
+
+      <div class="section">
+        <h3>重置</h3>
+        <button class="case-action-btn secondary" onclick="resetCase()">清空 (回到空白)</button>
       </div>
     </div>
   </main>
@@ -711,7 +766,7 @@
     <button data-tab="rhythm"><span class="ico">💚</span><span>心律</span></button>
     <button data-tab="panel"><span class="ico">📺</span><span>大銀幕</span></button>
     <button data-tab="actions"><span class="ico">⚡</span><span>處置</span></button>
-    <button data-tab="scenarios"><span class="ico">📋</span><span>情境</span></button>
+    <button data-tab="scenarios"><span class="ico">📋</span><span>教案</span></button>
   </nav>
 </div>
 
@@ -1227,103 +1282,115 @@ function copyDisplayUrl() {
 }
 window.copyDisplayUrl = copyDisplayUrl;
 
-// =================== Scenarios ===================
-function loadScenario(name) {
-  const scenarios = {
-    stemi: {
-      patient: { name: '陳大明', age: 58, sex: 'M', weight: 75, cc: '胸痛 30 分鐘，向左肩放射', pmh: '高血壓、第二型糖尿病', allergy: 'NKDA', meds: 'Amlodipine 5mg QD, Metformin 500mg BID' },
-      vitals: { hr: 88, sbp: 145, dbp: 88, spo2: 96, pi: 2.0, rr: 20, etco2: 36, temp: 36.8, tempSite: '耳溫' },
-      rhythm: 'NSR', ectopy: 'PVC', stemiRegion: 'inferior', stOffset: 0.3,
-      pulseless: false, cpr: false,
-      panel: { mode: 'patient' },
-      notes: '',
-    },
-    vfib_arrest: {
-      patient: { name: '李先生', age: 65, sex: 'M', weight: 80, cc: '突然倒地，無反應', pmh: '冠心症、舊心肌梗塞', allergy: 'NKDA', meds: 'Aspirin, Atorvastatin' },
-      vitals: { hr: 0, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 12, temp: 36.0, tempSite: '耳溫' },
-      rhythm: 'VF', ectopy: 'none', stemiRegion: null, stOffset: 0,
-      pulseless: true, cpr: false,
-      panel: { mode: 'patient' },
-      notes: '無脈搏、無呼吸 → 立即開始 CPR + 準備除顫',
-    },
-    svt: {
-      patient: { name: '林小姐', age: 32, sex: 'F', weight: 55, cc: '突然心悸 10 分鐘', pmh: '無', allergy: 'NKDA', meds: '無' },
-      vitals: { hr: 188, sbp: 108, dbp: 70, spo2: 98, pi: 1.8, rr: 18, etco2: 36, temp: 36.7, tempSite: '耳溫' },
-      rhythm: 'SVT', ectopy: 'none', stemiRegion: null, stOffset: 0,
-      pulseless: false, cpr: false,
-      panel: { mode: 'patient' },
-    },
-    chb: {
-      patient: { name: '吳老先生', age: 78, sex: 'M', weight: 60, cc: '頭暈、近乎昏厥', pmh: '高血壓', allergy: 'NKDA', meds: 'Bisoprolol' },
-      vitals: { hr: 35, sbp: 88, dbp: 55, spo2: 96, pi: 1.5, rr: 18, etco2: 35, temp: 36.5, tempSite: '耳溫' },
-      rhythm: 'AVB3', ectopy: 'none', stemiRegion: null, stOffset: 0,
-      pulseless: false, cpr: false,
-      panel: { mode: 'patient' },
-    },
-    asthma: {
-      patient: { name: '黃同學', age: 19, sex: 'M', weight: 65, cc: '氣喘發作、喘鳴', pmh: '氣喘', allergy: 'NKDA', meds: 'Albuterol PRN' },
-      vitals: { hr: 132, sbp: 138, dbp: 86, spo2: 86, pi: 1.2, rr: 30, etco2: 55, temp: 37.0, tempSite: '耳溫' },
+// =================== Case: Pediatric Status Epilepticus ===================
+const CASE_SEIZURE = {
+  patient: {
+    name: '小明 (案例)',
+    age: 3,
+    sex: 'M',
+    weight: 15,
+    cc: '突發全身強直-陣攣抽搐持續 7 分鐘，曾嘔吐',
+    pmh: '已知癲癇病史，過去 2 年無發作',
+    allergy: 'NKDA',
+    meds: 'Levetiracetam (已自行停藥 2 週)',
+  },
+  segments: [
+    {
+      label: '① 到場：抽搐中',
+      vitals: { hr: 125, sbp: 95, dbp: 60, spo2: 97, pi: 1.5, rr: 24, etco2: 38, temp: 37.6, tempSite: '耳溫' },
       rhythm: 'STach', ectopy: 'none', stemiRegion: null, stOffset: 0,
       pulseless: false, cpr: false,
-      panel: { mode: 'patient' },
-      notes: '雙肺廣泛 wheezing，能說 2-3 字，三角肌使用',
+      notes: '【① 到場：抽搐中】\n3 歲 15 kg 男童，GTC 抽搐持續 7 分鐘\n口鼻泡沫、gurgling sound、曾嘔吐\nGCS 無法評估\n瞳孔 3.5+/3.5+\nCRT < 2 秒\n血糖：抽搐中暫無法測\n\n處置重點：\n- 墊肩維持呼吸道姿勢\n- NRM 高濃度氧氣\n- 連上 ECG monitor\n- 準備 Midazolam',
     },
-    septic: {
-      patient: { name: '張先生', age: 70, sex: 'M', weight: 68, cc: '發燒、意識變化', pmh: '糖尿病、慢性腎臟病', allergy: 'NKDA', meds: 'Insulin' },
-      vitals: { hr: 132, sbp: 78, dbp: 45, spo2: 92, pi: 0.9, rr: 28, etco2: 28, temp: 39.2, tempSite: '耳溫' },
+    {
+      label: '② 持續抽搐 · SpO₂ 下降',
+      vitals: { hr: 130, sbp: 100, dbp: 65, spo2: 90, pi: 1.2, rr: 28, etco2: 45, temp: 37.7, tempSite: '耳溫' },
       rhythm: 'STach', ectopy: 'none', stemiRegion: null, stOffset: 0,
       pulseless: false, cpr: false,
-      panel: { mode: 'patient' },
+      notes: '【② 持續抽搐 · SpO₂ 下降】\nSpO₂ 從 97% 降到 90%\n胸廓起伏淺、口唇發紺\n抽搐尚未緩解\n\n處置：\n- 升級到 BVM 甦醒球輔助通氣\n- IM Midazolam 5 mg (13-40 kg 標準劑量)\n- 持續準備 IV access',
     },
-    trauma: {
-      patient: { name: '不詳 / John Doe', age: 28, sex: 'M', weight: 75, cc: '機車與汽車相撞', pmh: '不詳', allergy: '不詳', meds: '不詳' },
-      vitals: { hr: 132, sbp: 88, dbp: 56, spo2: 94, pi: 1.0, rr: 26, etco2: 32, temp: 36.0, tempSite: '耳溫' },
+    {
+      label: '③ Midazolam 5mg IM → 抽搐停止',
+      vitals: { hr: 110, sbp: 88, dbp: 55, spo2: 96, pi: 1.8, rr: 14, etco2: 38, temp: 37.5, tempSite: '耳溫' },
       rhythm: 'STach', ectopy: 'none', stemiRegion: null, stOffset: 0,
       pulseless: false, cpr: false,
-      panel: { mode: 'patient' },
-      notes: 'GCS E2V3M5 = 10\n右下肢明顯變形、左前胸壁壓痛',
+      notes: '【③ Midazolam 後抽搐停止】\n抽搐已停止 (postictal)\nGCS E1M1V1\n瞳孔 3.5+/3.5+\n血糖：52 mg/dL (低血糖!)\n持續 NRM 給氧\n\n處置：\n- 重新評估 ABCDE\n- 建立 IV → 給 D10W 5 mL/kg = 75 mL\n- 注意呼吸 / 血壓變化 (BZD 副作用)',
     },
-    opioid: {
-      patient: { name: '陳同學', age: 22, sex: 'M', weight: 60, cc: '被發現倒臥', pmh: '不詳', allergy: 'NKDA', meds: '不詳' },
-      vitals: { hr: 56, sbp: 96, dbp: 60, spo2: 82, pi: 1.0, rr: 6, etco2: 58, temp: 35.5, tempSite: '耳溫' },
-      rhythm: 'SBrady', ectopy: 'none', stemiRegion: null, stOffset: 0,
-      pulseless: false, cpr: false,
-      panel: { mode: 'patient' },
-      notes: '瞳孔縮小針尖大，現場找到空藥袋',
-    },
-    hypoglycemia: {
-      patient: { name: '黃女士', age: 68, sex: 'F', weight: 58, cc: '意識不清', pmh: '糖尿病 30 年', allergy: 'NKDA', meds: 'Insulin glargine, Glipizide' },
-      vitals: { hr: 110, sbp: 132, dbp: 86, spo2: 97, pi: 1.5, rr: 18, etco2: 35, temp: 36.4, tempSite: '耳溫' },
-      rhythm: 'STach', ectopy: 'none', stemiRegion: null, stOffset: 0,
-      pulseless: false, cpr: false,
-      panel: { mode: 'notes' },
-      notes: '血糖機讀值：38 mg/dL\n冷汗、抖動、無法應答',
-    },
-    dka: {
-      patient: { name: '王同學', age: 24, sex: 'F', weight: 52, cc: '腹痛、嘔吐 2 天', pmh: '第一型糖尿病', allergy: 'NKDA', meds: 'Insulin' },
-      vitals: { hr: 122, sbp: 102, dbp: 64, spo2: 99, pi: 1.5, rr: 28, etco2: 22, temp: 37.4, tempSite: '耳溫' },
-      rhythm: 'STach', ectopy: 'none', stemiRegion: null, stOffset: 0,
-      pulseless: false, cpr: false,
-      panel: { mode: 'patient' },
-      notes: 'Kussmaul 呼吸，丙酮味，血糖機 HI',
-    },
-    normal: {
-      patient: { name: '一般病人', age: 35, sex: 'M', weight: 70, cc: '健檢', pmh: '無', allergy: 'NKDA', meds: '無' },
-      vitals: { hr: 72, sbp: 120, dbp: 80, spo2: 99, pi: 3.0, rr: 14, etco2: 38, temp: 36.6, tempSite: '耳溫' },
+    {
+      label: '④ BZD 副作用 + 低血糖未矯正 (惡化分支)',
+      vitals: { hr: 92, sbp: 75, dbp: 45, spo2: 85, pi: 0.8, rr: 6, etco2: 55, temp: 37.4, tempSite: '耳溫' },
       rhythm: 'NSR', ectopy: 'none', stemiRegion: null, stOffset: 0,
       pulseless: false, cpr: false,
-      panel: { mode: 'blank' },
-      notes: '',
+      notes: '【④ BZD 副作用 + 低血糖】⚠️\n呼吸抑制：RR 6\n低血壓：BP 75/45\n低 SpO₂：85%\n低血糖 52 未矯正\n\n處置 (立即)：\n- BVM 輔助通氣 (Bagging)\n- D10W 75 mL IV stat\n- 重新評估循環\n- 監測呼吸 / 血壓回升',
     },
-  };
-  const s = scenarios[name];
-  if (!s) return;
-  Object.assign(state, s);
-  state.vitals.map = (state.vitals.sbp + 2 * state.vitals.dbp) / 3;
+    {
+      label: '⑤ D10W 75 mL IV → 恢復穩定',
+      vitals: { hr: 100, sbp: 95, dbp: 60, spo2: 99, pi: 2.0, rr: 16, etco2: 36, temp: 37.0, tempSite: '耳溫' },
+      rhythm: 'NSR', ectopy: 'none', stemiRegion: null, stOffset: 0,
+      pulseless: false, cpr: false,
+      notes: '【⑤ D10W 後穩定，後送中】\n血糖：94 mg/dL\n意識緩慢恢復 (postictal slowly improving)\nvitals 平穩\n\n後送處置：\n- 維持 NRM 氧氣\n- 保暖毯\n- 持續 ECG / SpO₂ 監測\n- 重新檢查血糖、瞳孔、GCS\n- 通知接收醫院',
+    },
+  ],
+};
+
+function loadCasePatient() {
+  state.patient = Object.assign({}, CASE_SEIZURE.patient);
+  state.panel = { mode: 'patient' };
+  state.medsList = [];
+  state.shockCounter = 0;
+  rampTarget = null;
   syncUIFromState();
   publishState(true);
 }
-window.loadScenario = loadScenario;
+
+function loadSegment(idx) {
+  const seg = CASE_SEIZURE.segments[idx];
+  if (!seg) return;
+  state.patient = Object.assign({}, CASE_SEIZURE.patient);
+  state.rhythm = seg.rhythm;
+  state.ectopy = seg.ectopy;
+  state.stemiRegion = seg.stemiRegion;
+  state.stOffset = seg.stOffset;
+  state.pulseless = seg.pulseless;
+  state.cpr = seg.cpr;
+  state.notes = seg.notes;
+  state.vitals = Object.assign({}, state.vitals, seg.vitals);
+  state.vitals.map = Math.round((state.vitals.sbp + 2 * state.vitals.dbp) / 3);
+  state.panel = { mode: 'notes' };
+  rampTarget = null;
+  syncUIFromState();
+  publishState(true);
+  navigator.vibrate?.(40);
+}
+
+function resetCase() {
+  if (!confirm('清空所有狀態並回到空白？')) return;
+  state.patient = { name: '', age: 0, sex: 'M', weight: 0, cc: '', pmh: '', allergy: 'NKDA', meds: '' };
+  state.vitals = { hr: 80, sbp: 120, dbp: 80, map: 93, spo2: 99, pi: 2.0, rr: 14, etco2: 38, temp: 36.7, tempSite: '耳溫' };
+  state.rhythm = 'NSR';
+  state.ectopy = 'none';
+  state.stemiRegion = null;
+  state.stOffset = 0;
+  state.pulseless = false;
+  state.cpr = false;
+  state.notes = '';
+  state.labs = null;
+  state.imagingUrl = '';
+  state.imagingCaption = '';
+  state.customHtml = '';
+  state.iframeUrl = '';
+  state.medsList = [];
+  state.shockCounter = 0;
+  state.panel = { mode: 'blank' };
+  state.show = { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true };
+  rampTarget = null;
+  syncUIFromState();
+  publishState(true);
+}
+
+window.loadCasePatient = loadCasePatient;
+window.loadSegment = loadSegment;
+window.resetCase = resetCase;
 
 // =================== UI sync ===================
 function syncUIFromState() {
