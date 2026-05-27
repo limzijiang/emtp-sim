@@ -131,19 +131,20 @@
   .numeric-box.red   { color: #f44; }
 
   .extra-numerics {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
     border-top: 1px solid #1a1a1a;
     background: #050505;
     height: 96px;
     flex: 0 0 auto;
   }
   .extra-numerics .numeric-box {
+    flex: 1 1 0;
     text-align: left;
     padding: 6px 10px;
+    min-width: 0;
   }
   .extra-numerics .numeric-box:first-child { border-left: none; }
-  .extra-numerics .numeric-box .value { font-size: 40px; }
+  .extra-numerics .numeric-box .value { font-size: 36px; }
 
   /* Alarms */
   .alarm-high {
@@ -457,7 +458,6 @@
       <div class="numeric-box yellow">
         <div class="row1">EtCO₂<span class="units">mmHg</span></div>
         <div class="value" id="v-etco2">38</div>
-        <div class="sub">RR <span id="v-rr">16</span></div>
       </div>
     </div>
 
@@ -466,6 +466,11 @@
         <div class="row1">NIBP<span class="units">mmHg</span></div>
         <div class="value"><span id="v-sbp">128</span>/<span id="v-dbp">82</span></div>
         <div class="sub">MAP <span id="v-map">97</span> · <span id="v-bptime">手動</span></div>
+      </div>
+      <div class="numeric-box yellow" id="box-rr">
+        <div class="row1">RR<span class="units">/min</span></div>
+        <div class="value" id="v-rr">16</div>
+        <div class="sub">監測</div>
       </div>
       <div class="numeric-box orange" id="box-temp">
         <div class="row1">Temp<span class="units">°C</span></div>
@@ -517,7 +522,7 @@ let state = {
   medsList: [],
   shockCounter: 0,
   twelveLeadFreeze: null,
-  show: { ecg: true, spo2: true, co2: true, nibp: true, temp: true },
+  show: { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true },
 };
 let lastShockCount = 0;
 
@@ -961,13 +966,14 @@ function tick(now) {
 
 // =================== Numeric & UI sync ===================
 function applyVisibility() {
-  const show = state.show || { ecg: true, spo2: true, co2: true, nibp: true, temp: true };
+  const show = state.show || { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true };
   document.getElementById('row-ecg').style.display = show.ecg ? '' : 'none';
   document.getElementById('row-spo2').style.display = show.spo2 ? '' : 'none';
   document.getElementById('row-co2').style.display = show.co2 ? '' : 'none';
   document.getElementById('box-nibp').style.display = show.nibp ? '' : 'none';
+  document.getElementById('box-rr').style.display = show.rr ? '' : 'none';
   document.getElementById('box-temp').style.display = show.temp ? '' : 'none';
-  document.getElementById('extra-row').style.display = (show.nibp || show.temp) ? '' : 'none';
+  document.getElementById('extra-row').style.display = (show.nibp || show.rr || show.temp) ? '' : 'none';
   // Defer reflow then resize waveforms to fit new heights
   requestAnimationFrame(() => {
     if (typeof waveforms !== 'undefined') {
