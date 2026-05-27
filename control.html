@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>EMT-P Sim · Control</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: -apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    overflow: hidden;
+    overscroll-behavior: contain;
+    font-size: 15px;
+  }
+  input, button, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+
+  .app {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  header {
+    background: #161b22;
+    border-bottom: 1px solid #2a2f38;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+  header .status { color: #888; }
+  header .status.connected { color: #6c6; }
+  header .status.error { color: #f66; }
+  header .session {
+    font-family: 'Courier New', monospace;
+    color: #6cf;
+    cursor: pointer;
+  }
+
+  main {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 12px 28px;
+  }
+
+  nav.tabs {
+    background: #161b22;
+    border-top: 1px solid #2a2f38;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding: env(safe-area-inset-bottom) 0;
+  }
+  nav.tabs button {
+    background: none;
+    border: 0;
+    color: #888;
+    padding: 12px 4px;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  nav.tabs button .ico { font-size: 18px; }
+  nav.tabs button.active { color: #58a6ff; }
+  nav.tabs button:active { background: #1f2630; }
+
+  .section {
+    margin-bottom: 18px;
+    background: #161b22;
+    border-radius: 8px;
+    padding: 12px 14px;
+    border: 1px solid #2a2f38;
+  }
+  .section h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 80px 1fr 56px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .row label { font-size: 14px; color: #c9d1d9; }
+  .row .val {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    color: #6cf;
+    font-size: 16px;
+    font-weight: bold;
+  }
+  .row input[type=range] {
+    -webkit-appearance: none;
+    background: #2a2f38;
+    height: 6px;
+    border-radius: 3px;
+    width: 100%;
+  }
+  .row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 26px; height: 26px;
+    background: #58a6ff;
+    border-radius: 50%;
+    border: 2px solid #fff;
+  }
+
+  .grid-btns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .grid-btns.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-btns.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-btns button {
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #2a2f38;
+    padding: 10px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.1s;
+  }
+  .grid-btns button:active { background: #2d333b; }
+  .grid-btns button.active {
+    background: #1f6feb;
+    border-color: #58a6ff;
+    color: #fff;
+  }
+  .grid-btns button.danger { color: #f85149; border-color: #4a1c1c; }
+  .grid-btns button.danger.active { background: #da3633; color: #fff; }
+  .grid-btns button.warn { color: #f7b955; }
+  .grid-btns button.success { color: #3fb950; }
+
+  .field {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .field label { font-size: 13px; color: #8b949e; }
+  .field input, .field select, .field textarea {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    padding: 8px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    width: 100%;
+  }
+  .field textarea { min-height: 80px; resize: vertical; font-family: inherit; }
+
+  .vital-block {
+    border-left: 3px solid #1f6feb;
+    padding: 8px 4px 8px 10px;
+    margin-bottom: 8px;
+  }
+  .vital-block.bp { border-left-color: #c9d1d9; }
+  .vital-block.spo2 { border-left-color: #4ee; }
+  .vital-block.co2 { border-left-color: #fc4; }
+  .vital-block.temp { border-left-color: #f93; }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  .preset-card {
+    background: #21262d;
+    border: 1px solid #2a2f38;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .preset-card:active { background: #2d333b; }
+  .preset-card h4 { margin: 0 0 6px; color: #6cf; font-size: 14px; }
+  .preset-card p { margin: 0; color: #8b949e; font-size: 12px; line-height: 1.4; }
+
+  .quick-actions {
+    display: flex; gap: 6px;
+    flex-wrap: wrap;
+  }
+  .quick-actions button {
+    flex: 1 1 30%;
+    min-width: 0;
+  }
+
+  .toggle-row {
+    display: flex; justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px dotted #2a2f38;
+  }
+  .toggle-row:last-child { border: 0; }
+  .switch {
+    position: relative;
+    width: 50px; height: 28px;
+    background: #2a2f38;
+    border-radius: 14px;
+    transition: background 0.2s;
+  }
+  .switch::after {
+    content: ''; position: absolute;
+    top: 2px; left: 2px;
+    width: 24px; height: 24px;
+    background: #fff; border-radius: 50%;
+    transition: left 0.2s;
+  }
+  .switch.on { background: #1f6feb; }
+  .switch.on::after { left: 24px; }
+
+  .strip-actions {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .strip-actions button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .shock-btn { background: #da3633; color: #fff; }
+  .shock-btn:active { background: #b62321; }
+  .cpr-btn { background: #f85149; color: #fff; }
+  .cpr-btn.active { background: #58a6ff; }
+
+  .joule-pick {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .joule-pick button {
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #2a2f38;
+    padding: 8px 4px;
+    border-radius: 5px;
+    font-size: 13px;
+  }
+  .joule-pick button.active { background: #1f6feb; color: #fff; }
+
+  .qr-modal {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .qr-modal.active { display: flex; }
+  .qr-card {
+    background: #fff;
+    padding: 24px;
+    border-radius: 10px;
+    text-align: center;
+    color: #000;
+    max-width: 320px;
+  }
+  .qr-card .url {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    word-break: break-all;
+    color: #1f6feb;
+    margin: 12px 0;
+    background: #f6f8fa;
+    padding: 8px;
+    border-radius: 4px;
+  }
+  .qr-card button {
+    background: #1f6feb;
+    color: #fff;
+    border: 0;
+    padding: 10px 24px;
+    border-radius: 6px;
+    margin-top: 10px;
+  }
+
+  .small-hint {
+    color: #6e7681;
+    font-size: 11px;
+    margin-top: 4px;
+  }
+
+  .ramp-control {
+    display: flex; gap: 6px; align-items: center;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+  .ramp-control select {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <span class="status" id="conn-status">連線中…</span>
+    <span class="session" id="session-id" title="點擊複製 display URL">—</span>
+  </header>
+
+  <main>
+    <!-- ============ VITALS TAB ============ -->
+    <div class="tab-pane active" data-tab="vitals">
+      <div class="section">
+        <h3>生命徵象</h3>
+        <div class="ramp-control">
+          變化速度
+          <select id="ramp-mode">
+            <option value="instant">立即</option>
+            <option value="fast" selected>快 (3秒)</option>
+            <option value="medium">中 (10秒)</option>
+            <option value="slow">慢 (30秒)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section vital-block">
+        <h3 style="color:#3fb950">HR · 心率</h3>
+        <div class="row">
+          <label>HR</label>
+          <input type="range" min="0" max="250" step="1" id="r-hr">
+          <span class="val" id="v-hr">75</span>
+        </div>
+      </div>
+
+      <div class="section vital-block bp">
+        <h3 style="color:#c9d1d9">NIBP · 血壓</h3>
+        <div class="row">
+          <label>SBP</label>
+          <input type="range" min="40" max="240" step="2" id="r-sbp">
+          <span class="val" id="v-sbp">128</span>
+        </div>
+        <div class="row">
+          <label>DBP</label>
+          <input type="range" min="20" max="160" step="2" id="r-dbp">
+          <span class="val" id="v-dbp">82</span>
+        </div>
+      </div>
+
+      <div class="section vital-block spo2">
+        <h3 style="color:#4ee">SpO₂ · 血氧</h3>
+        <div class="row">
+          <label>SpO₂</label>
+          <input type="range" min="50" max="100" step="1" id="r-spo2">
+          <span class="val" id="v-spo2">98</span>
+        </div>
+        <div class="row">
+          <label>PI</label>
+          <input type="range" min="0" max="20" step="0.1" id="r-pi">
+          <span class="val" id="v-pi">2.1</span>
+        </div>
+      </div>
+
+      <div class="section vital-block co2">
+        <h3 style="color:#fc4">RR / EtCO₂ · 呼吸</h3>
+        <div class="row">
+          <label>RR</label>
+          <input type="range" min="0" max="60" step="1" id="r-rr">
+          <span class="val" id="v-rr">16</span>
+        </div>
+        <div class="row">
+          <label>EtCO₂</label>
+          <input type="range" min="0" max="80" step="1" id="r-etco2">
+          <span class="val" id="v-etco2">38</span>
+        </div>
+      </div>
+
+      <div class="section vital-block temp">
+        <h3 style="color:#f93">Temp · 體溫</h3>
+        <div class="row">
+          <label>Temp</label>
+          <input type="range" min="28" max="42" step="0.1" id="r-temp">
+          <span class="val" id="v-temp">36.7</span>
+        </div>
+        <div class="field">
+          <label>測量</label>
+          <select id="i-tempsite">
+            <option>耳溫</option><option>口溫</option><option>腋溫</option><option>肛溫</option><option>核心</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ RHYTHM TAB ============ -->
+    <div class="tab-pane" data-tab="rhythm">
+      <div class="section">
+        <h3>心律</h3>
+        <div class="grid-btns" id="rhythm-btns">
+          <button data-r="NSR">NSR</button>
+          <button data-r="STach">Sinus Tach</button>
+          <button data-r="SBrady">Sinus Brady</button>
+          <button data-r="AFib">A-Fib</button>
+          <button data-r="AFlutter">A-Flutter</button>
+          <button data-r="SVT">SVT</button>
+          <button data-r="VT" class="danger">V-Tach</button>
+          <button data-r="pVT" class="danger">Poly-VT</button>
+          <button data-r="VF" class="danger">V-Fib</button>
+          <button data-r="Asystole" class="danger">Asystole</button>
+          <button data-r="PEA" class="danger">PEA</button>
+          <button data-r="Paced">Paced</button>
+          <button data-r="AVB1">1° AVB</button>
+          <button data-r="AVB2-I">2° I</button>
+          <button data-r="AVB2-II">2° II</button>
+          <button data-r="AVB3">3° AVB</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>異位節律</h3>
+        <div class="grid-btns" id="ectopy-btns">
+          <button data-e="none" class="active">無</button>
+          <button data-e="PVC">偶發 PVC</button>
+          <button data-e="bigeminy">二聯律</button>
+          <button data-e="PAC">PAC</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>ST 段 / STEMI 部位</h3>
+        <div class="grid-btns" id="stemi-btns">
+          <button data-s="" class="active">無</button>
+          <button data-s="anterior" class="danger">前壁</button>
+          <button data-s="inferior" class="danger">下壁</button>
+          <button data-s="lateral" class="danger">側壁</button>
+          <button data-s="septal" class="danger">中膈</button>
+          <button data-s="anterolateral" class="danger">前側壁</button>
+          <button data-s="posterior" class="danger">後壁</button>
+          <button data-s="rv" class="danger">右室</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <label>ST 量</label>
+          <input type="range" min="0" max="0.6" step="0.05" id="r-st">
+          <span class="val" id="v-st">0.25</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>狀態</h3>
+        <div class="toggle-row">
+          <span>無脈搏 (Pulseless)</span>
+          <div class="switch" id="t-pulseless" data-key="pulseless"></div>
+        </div>
+        <div class="toggle-row">
+          <span>CPR 進行中</span>
+          <div class="switch" id="t-cpr" data-key="cpr"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ RIGHT PANEL TAB ============ -->
+    <div class="tab-pane" data-tab="panel">
+      <div class="section">
+        <h3>大銀幕右側顯示</h3>
+        <div class="grid-btns" id="panel-btns">
+          <button data-m="blank" class="active">空白</button>
+          <button data-m="patient">病人資料</button>
+          <button data-m="12lead">12 導程</button>
+          <button data-m="labs">實驗室</button>
+          <button data-m="imaging">影像</button>
+          <button data-m="notes">提示文字</button>
+          <button data-m="meds">給藥紀錄</button>
+          <button data-m="custom">自訂 HTML</button>
+          <button data-m="iframe">外部 URL</button>
+        </div>
+      </div>
+
+      <div class="section" id="sec-patient">
+        <h3>病人資料</h3>
+        <div class="field"><label>姓名</label><input id="pt-name"></div>
+        <div class="field"><label>年齡</label><input type="number" id="pt-age"></div>
+        <div class="field"><label>性別</label><select id="pt-sex"><option value="M">男</option><option value="F">女</option></select></div>
+        <div class="field"><label>體重 (kg)</label><input type="number" id="pt-weight"></div>
+        <div class="field"><label>主訴</label><input id="pt-cc"></div>
+        <div class="field"><label>過去病史</label><textarea id="pt-pmh"></textarea></div>
+        <div class="field"><label>用藥</label><textarea id="pt-meds"></textarea></div>
+        <div class="field"><label>過敏</label><input id="pt-allergy"></div>
+      </div>
+
+      <div class="section">
+        <h3>提示文字 (給學員看)</h3>
+        <textarea id="notes-text" placeholder="例：到院途中血壓下降至 80/50…" style="width:100%; min-height:100px; background:#0d1117; border:1px solid #30363d; color:#c9d1d9; padding:10px; border-radius:6px"></textarea>
+      </div>
+
+      <div class="section">
+        <h3>影像 URL</h3>
+        <div class="field"><label>圖片/影片</label><input id="img-url" placeholder="https://… 或 data:image/..."></div>
+        <div class="field"><label>說明</label><input id="img-caption" placeholder="CXR · 前後位"></div>
+        <div class="small-hint">提示：可直接貼上圖檔網址；亦支援 mp4/webm。</div>
+      </div>
+
+      <div class="section">
+        <h3>實驗室 (12-Lead 標籤)</h3>
+        <div class="field"><label>時間標籤</label><input id="lab-time" placeholder="0930"></div>
+        <div class="grid-btns cols-2">
+          <button onclick="setLabsPreset('mi')">心肌梗塞</button>
+          <button onclick="setLabsPreset('sepsis')">敗血症</button>
+          <button onclick="setLabsPreset('dka')">DKA</button>
+          <button onclick="setLabsPreset('trauma')">創傷</button>
+          <button onclick="setLabsPreset('chf')">心衰竭</button>
+          <button onclick="setLabsPreset('normal')">正常</button>
+        </div>
+        <textarea id="lab-raw" placeholder="自訂 JSON (進階)" style="width:100%; min-height:80px; margin-top:10px; background:#0d1117; border:1px solid #30363d; color:#c9d1d9; padding:8px; border-radius:6px; font-family:'Courier New',monospace; font-size:11px"></textarea>
+      </div>
+
+      <div class="section">
+        <h3>外部 URL (iframe)</h3>
+        <div class="field"><label>URL</label><input id="iframe-url" placeholder="https://..."></div>
+      </div>
+
+      <div class="section">
+        <h3>自訂 HTML</h3>
+        <textarea id="custom-html" style="width:100%; min-height:120px; background:#0d1117; border:1px solid #30363d; color:#c9d1d9; padding:8px; border-radius:6px; font-family:'Courier New',monospace; font-size:12px"></textarea>
+      </div>
+    </div>
+
+    <!-- ============ ACTIONS TAB ============ -->
+    <div class="tab-pane" data-tab="actions">
+      <div class="section">
+        <h3>除顫 / 整流</h3>
+        <div class="strip-actions">
+          <button class="shock-btn" id="btn-shock">⚡ SHOCK</button>
+        </div>
+        <div class="joule-pick" id="joule-pick">
+          <button data-j="120">120 J</button>
+          <button data-j="150">150 J</button>
+          <button data-j="200" class="active">200 J</button>
+          <button data-j="360">360 J</button>
+        </div>
+        <div class="small-hint">放電後可手動把心律切換到 NSR / VF</div>
+      </div>
+
+      <div class="section">
+        <h3>CPR</h3>
+        <div class="strip-actions">
+          <button class="cpr-btn" id="btn-cpr-toggle">CPR 開始 / 停止</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>給藥</h3>
+        <div class="field"><label>藥名</label><input id="med-name" placeholder="Epinephrine"></div>
+        <div class="field"><label>劑量</label><input id="med-dose" placeholder="1 mg IV"></div>
+        <div class="strip-actions">
+          <button style="background:#1f6feb; color:#fff;" onclick="addMed()">+ 加入給藥紀錄</button>
+          <button style="background:#21262d; color:#c9d1d9;" onclick="clearMeds()">清空</button>
+        </div>
+        <div class="grid-btns cols-4">
+          <button onclick="quickMed('Epinephrine','1 mg IV')">Epi 1mg</button>
+          <button onclick="quickMed('Amiodarone','300 mg IV')">Amio 300mg</button>
+          <button onclick="quickMed('Atropine','1 mg IV')">Atropine</button>
+          <button onclick="quickMed('Adenosine','6 mg IV')">Adenosine</button>
+          <button onclick="quickMed('Aspirin','325 mg PO')">ASA</button>
+          <button onclick="quickMed('NTG','0.4 mg SL')">NTG</button>
+          <button onclick="quickMed('Morphine','4 mg IV')">嗎啡</button>
+          <button onclick="quickMed('Naloxone','0.4 mg IV')">Naloxone</button>
+          <button onclick="quickMed('D50W','25 g IV')">D50W</button>
+          <button onclick="quickMed('Calcium','1 g IV')">Calcium</button>
+          <button onclick="quickMed('Bicarbonate','1 mEq/kg IV')">Bicarb</button>
+          <button onclick="quickMed('Normal Saline','500 mL IV')">NS bolus</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>即時提示閃光</h3>
+        <div class="strip-actions">
+          <button style="background:#1f6feb; color:#fff;" onclick="flashScreen('ROSC')">ROSC</button>
+          <button style="background:#da3633; color:#fff;" onclick="flashScreen('VF/VT')">VF/VT</button>
+          <button style="background:#3fb950; color:#fff;" onclick="flashScreen('檢查脈搏')">檢查脈搏</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SCENARIOS TAB ============ -->
+    <div class="tab-pane" data-tab="scenarios">
+      <div class="section">
+        <h3>情境預設</h3>
+        <div class="preset-card" onclick="loadScenario('stemi')">
+          <h4>急性下壁心肌梗塞</h4>
+          <p>58M 胸痛 30 分鐘，HR 88, BP 145/88, SpO₂ 96%, II/III/aVF ST 抬高</p>
+        </div>
+        <div class="preset-card" onclick="loadScenario('vfib_arrest')">
+          <h4>VF 心跳停止</h4>
+          <p>意識喪失，無脈搏，V-Fib，需立即除顫 + CPR</p>
+        </div>
+        <div class="preset-card" onclick="loadScenario('svt')">
+          <h4>SVT</h4>
+          <p>HR 180, 心悸，BP 110/70，意識清楚</p>
+        </div>
+        <div class="preset-card" onclick="loadScenario('chb')">
+          <h4>完全房室阻斷</h4>
+          <p>HR 35, BP 90/55, 頭暈，3° AVB</p>
+        </div>
+        <div class="preset-card" onclick="loadScenario('asthma')">
+          <h4>嚴重氣喘</h4>
+          <p>HR 130, RR 30, SpO₂ 86%, EtCO₂ 55, wheezing</p>
+        </div>
+        <div class="preset-card" onclick="loadScenario('septic')">
+          <h4>敗血性休克</h4>
+          <p>HR 130, BP 78/45, T 39.2, SpO₂ 92%, lactate 4.8</p>
+        </div>
+        <div class="preset-card" onclick="loadScenario('trauma')">
+          <h4>多重外傷</h4>
+          <p>HR 130, BP 88/56, SpO₂ 94%, GCS E2V3M5</p>
+        </div>
+        <div class="preset-card" onclick="loadScenario('opioid')">
+          <h4>鴉片類過量</h4>
+          <p>HR 56, RR 6, SpO₂ 82%, 瞳孔縮小</p>
+        </div>
+        <div class="preset-card" onclick="loadScenario('hypoglycemia')">
+          <h4>低血糖</h4>
+          <p>意識不清，血糖 38 mg/dL，HR 110, 冷汗</p>
+        </div>
+        <div class="preset-card" onclick="loadScenario('dka')">
+          <h4>糖尿病酮酸中毒</h4>
+          <p>HR 122, RR 28 (Kussmaul), SpO₂ 99%, 血糖 520</p>
+        </div>
+        <div class="preset-card" onclick="loadScenario('normal')">
+          <h4>正常（重置）</h4>
+          <p>恢復為正常生命徵象</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <nav class="tabs">
+    <button data-tab="vitals" class="active"><span class="ico">📊</span><span>Vitals</span></button>
+    <button data-tab="rhythm"><span class="ico">💚</span><span>心律</span></button>
+    <button data-tab="panel"><span class="ico">📺</span><span>大銀幕</span></button>
+    <button data-tab="actions"><span class="ico">⚡</span><span>處置</span></button>
+    <button data-tab="scenarios"><span class="ico">📋</span><span>情境</span></button>
+  </nav>
+</div>
+
+<div class="qr-modal" id="qr-modal" onclick="this.classList.remove('active')">
+  <div class="qr-card" onclick="event.stopPropagation()">
+    <h3 style="margin-top:0">大銀幕網址</h3>
+    <div class="url" id="display-url">—</div>
+    <div style="margin-top:6px; color:#666; font-size:12px">在大銀幕電腦/平板開啟此網址</div>
+    <button onclick="copyDisplayUrl()">複製網址</button>
+    <button onclick="document.getElementById('qr-modal').classList.remove('active')" style="background:#666; margin-left:6px">關閉</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js"></script>
+<script>
+'use strict';
+
+// =================== Session ===================
+const params = new URLSearchParams(location.search);
+let sessionId = (params.get('s') || params.get('session') || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32);
+if (!sessionId) {
+  sessionId = localStorage.getItem('emtp-sim-session') || Math.random().toString(36).slice(2, 7);
+  const url = new URL(location.href);
+  url.searchParams.set('s', sessionId);
+  history.replaceState(null, '', url.toString());
+}
+localStorage.setItem('emtp-sim-session', sessionId);
+const broker = params.get('broker') || 'wss://broker.hivemq.com:8884/mqtt';
+document.getElementById('session-id').textContent = sessionId;
+
+// =================== State ===================
+let state = {
+  patient: {
+    name: '王小明', age: 58, sex: 'M', weight: 70,
+    cc: '胸痛 30 分鐘', pmh: '高血壓、糖尿病', allergy: 'NKDA', meds: 'Amlodipine 5mg QD',
+  },
+  vitals: {
+    hr: 75, sbp: 128, dbp: 82, map: 97,
+    spo2: 98, pi: 2.1, rr: 16, etco2: 38,
+    temp: 36.7, tempSite: '耳溫',
+  },
+  rhythm: 'NSR',
+  ectopy: 'none',
+  stemiRegion: null,
+  stOffset: 0.25,
+  pulseless: false,
+  cpr: false,
+  panel: { mode: 'blank' },
+  notes: '',
+  labs: null,
+  imagingUrl: '',
+  imagingCaption: '',
+  customHtml: '',
+  iframeUrl: '',
+  medsList: [],
+  shockCounter: 0,
+};
+
+// =================== MQTT ===================
+const topicState  = `emtp-sim/${sessionId}/state`;
+const topicAction = `emtp-sim/${sessionId}/action`;
+const topicHello  = `emtp-sim/${sessionId}/hello`;
+
+const connStatus = document.getElementById('conn-status');
+const client = mqtt.connect(broker, {
+  clientId: 'control-' + Math.random().toString(36).slice(2, 10),
+  reconnectPeriod: 2000,
+  clean: true,
+});
+client.on('connect', () => {
+  connStatus.className = 'status connected';
+  connStatus.textContent = '已連線';
+  client.subscribe([topicState, topicHello], { qos: 0 });
+  publishState(true);
+});
+client.on('reconnect', () => { connStatus.className = 'status'; connStatus.textContent = '重新連線中…'; });
+client.on('error', (e) => { connStatus.className = 'status error'; connStatus.textContent = '錯誤'; });
+client.on('close', () => { connStatus.className = 'status error'; connStatus.textContent = '已斷線'; });
+client.on('message', (topic, buf) => {
+  if (topic === topicHello) {
+    try {
+      const m = JSON.parse(buf.toString());
+      if (m.role === 'display') publishState(true); // resend on display join
+    } catch {}
+  }
+});
+
+let publishTimer = null;
+let rampTarget = null;
+let rampInterval = null;
+
+function publishState(retain) {
+  if (!client.connected) return;
+  client.publish(topicState, JSON.stringify(state), { retain: !!retain, qos: 0 });
+}
+function publishStateDebounced() {
+  clearTimeout(publishTimer);
+  publishTimer = setTimeout(() => publishState(true), 60);
+}
+function publishAction(action) {
+  if (!client.connected) return;
+  client.publish(topicAction, JSON.stringify(action), { retain: false, qos: 0 });
+}
+
+// Ramping: smooth interpolation of vitals
+function setVital(key, target) {
+  const mode = document.getElementById('ramp-mode').value;
+  const dur = { instant: 0, fast: 3000, medium: 10000, slow: 30000 }[mode] ?? 3000;
+  if (dur === 0) {
+    state.vitals[key] = target;
+    publishStateDebounced();
+    return;
+  }
+  if (!rampTarget) rampTarget = {};
+  rampTarget[key] = { from: state.vitals[key], to: target, t0: performance.now(), dur };
+  if (!rampInterval) startRamp();
+}
+function startRamp() {
+  rampInterval = setInterval(() => {
+    if (!rampTarget) { clearInterval(rampInterval); rampInterval = null; return; }
+    const now = performance.now();
+    let stillAny = false;
+    for (const k of Object.keys(rampTarget)) {
+      const r = rampTarget[k];
+      const x = Math.min(1, (now - r.t0) / r.dur);
+      const eased = x < 0.5 ? 2*x*x : 1 - Math.pow(-2*x+2, 2)/2;
+      state.vitals[k] = r.from + (r.to - r.from) * eased;
+      if (x >= 1) delete rampTarget[k]; else stillAny = true;
+    }
+    if (!stillAny) { rampTarget = null; }
+    // derive MAP
+    state.vitals.map = (state.vitals.sbp + 2 * state.vitals.dbp) / 3;
+    publishState(true);
+  }, 100);
+}
+
+// =================== Vitals sliders ===================
+function bindRange(rangeId, valId, vitalKey, decimals = 0) {
+  const r = document.getElementById(rangeId);
+  const v = document.getElementById(valId);
+  r.value = state.vitals[vitalKey];
+  v.textContent = formatNum(state.vitals[vitalKey], decimals);
+  r.addEventListener('input', () => {
+    const val = parseFloat(r.value);
+    v.textContent = formatNum(val, decimals);
+    setVital(vitalKey, val);
+  });
+}
+function formatNum(n, d) { return Number(n).toFixed(d); }
+
+bindRange('r-hr', 'v-hr', 'hr', 0);
+bindRange('r-sbp', 'v-sbp', 'sbp', 0);
+bindRange('r-dbp', 'v-dbp', 'dbp', 0);
+bindRange('r-spo2', 'v-spo2', 'spo2', 0);
+bindRange('r-pi', 'v-pi', 'pi', 1);
+bindRange('r-rr', 'v-rr', 'rr', 0);
+bindRange('r-etco2', 'v-etco2', 'etco2', 0);
+bindRange('r-temp', 'v-temp', 'temp', 1);
+
+document.getElementById('i-tempsite').addEventListener('change', e => {
+  state.vitals.tempSite = e.target.value;
+  publishStateDebounced();
+});
+
+// =================== Rhythm buttons ===================
+document.querySelectorAll('#rhythm-btns button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#rhythm-btns button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.rhythm = b.dataset.r;
+    // Some rhythms imply pulseless
+    if (['VF','Asystole','PEA'].includes(state.rhythm)) state.pulseless = true;
+    if (state.rhythm === 'NSR' || state.rhythm === 'STach' || state.rhythm === 'SBrady') state.pulseless = false;
+    syncToggles();
+    publishStateDebounced();
+  });
+});
+document.querySelectorAll('#ectopy-btns button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#ectopy-btns button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.ectopy = b.dataset.e;
+    publishStateDebounced();
+  });
+});
+document.querySelectorAll('#stemi-btns button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#stemi-btns button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.stemiRegion = b.dataset.s || null;
+    publishStateDebounced();
+  });
+});
+
+document.getElementById('r-st').addEventListener('input', e => {
+  state.stOffset = parseFloat(e.target.value);
+  document.getElementById('v-st').textContent = state.stOffset.toFixed(2);
+  publishStateDebounced();
+});
+document.getElementById('r-st').value = state.stOffset;
+document.getElementById('v-st').textContent = state.stOffset.toFixed(2);
+
+// =================== Toggles ===================
+function syncToggles() {
+  document.getElementById('t-pulseless').classList.toggle('on', !!state.pulseless);
+  document.getElementById('t-cpr').classList.toggle('on', !!state.cpr);
+  document.getElementById('btn-cpr-toggle').classList.toggle('active', !!state.cpr);
+}
+document.querySelectorAll('.switch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    const key = sw.dataset.key;
+    state[key] = !state[key];
+    syncToggles();
+    publishStateDebounced();
+  });
+});
+
+// =================== Panel mode ===================
+document.querySelectorAll('#panel-btns button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#panel-btns button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.panel = { mode: b.dataset.m };
+    publishStateDebounced();
+  });
+});
+
+// Patient fields
+function bindField(id, getter, setter, parser) {
+  const el = document.getElementById(id);
+  el.value = getter();
+  el.addEventListener('input', () => {
+    setter(parser ? parser(el.value) : el.value);
+    publishStateDebounced();
+  });
+}
+bindField('pt-name', () => state.patient.name, v => state.patient.name = v);
+bindField('pt-age', () => state.patient.age, v => state.patient.age = v, v => parseInt(v) || 0);
+bindField('pt-sex', () => state.patient.sex, v => state.patient.sex = v);
+bindField('pt-weight', () => state.patient.weight, v => state.patient.weight = v, v => parseFloat(v) || 0);
+bindField('pt-cc', () => state.patient.cc, v => state.patient.cc = v);
+bindField('pt-pmh', () => state.patient.pmh, v => state.patient.pmh = v);
+bindField('pt-meds', () => state.patient.meds, v => state.patient.meds = v);
+bindField('pt-allergy', () => state.patient.allergy, v => state.patient.allergy = v);
+
+bindField('notes-text', () => state.notes, v => state.notes = v);
+bindField('img-url', () => state.imagingUrl, v => state.imagingUrl = v);
+bindField('img-caption', () => state.imagingCaption, v => state.imagingCaption = v);
+bindField('iframe-url', () => state.iframeUrl, v => state.iframeUrl = v);
+bindField('custom-html', () => state.customHtml, v => state.customHtml = v);
+
+// =================== Lab presets ===================
+function setLabsPreset(name) {
+  const time = document.getElementById('lab-time').value || '';
+  const presets = {
+    mi: {
+      timeLabel: time || 'STAT',
+      groups: [
+        { name: '心臟酵素', items: [
+          { name: 'Troponin-I', value: '4.82', unit: 'ng/mL', flag: 'crit' },
+          { name: 'CK-MB', value: '45', unit: 'ng/mL', flag: 'high' },
+          { name: 'BNP', value: '320', unit: 'pg/mL', flag: 'high' },
+        ]},
+        { name: 'CBC', items: [
+          { name: 'WBC', value: '11.2', unit: '10³/µL', flag: 'high' },
+          { name: 'Hb', value: '13.8', unit: 'g/dL' },
+          { name: 'Plt', value: '245', unit: '10³/µL' },
+        ]},
+        { name: 'BMP', items: [
+          { name: 'Na', value: '138', unit: 'mEq/L' },
+          { name: 'K', value: '4.1', unit: 'mEq/L' },
+          { name: 'Cr', value: '1.1', unit: 'mg/dL' },
+          { name: 'Glucose', value: '142', unit: 'mg/dL', flag: 'high' },
+        ]},
+      ]
+    },
+    sepsis: {
+      timeLabel: time || 'ER',
+      groups: [
+        { name: 'CBC', items: [
+          { name: 'WBC', value: '24.5', unit: '10³/µL', flag: 'crit' },
+          { name: 'Bands', value: '18', unit: '%', flag: 'high' },
+          { name: 'Plt', value: '85', unit: '10³/µL', flag: 'low' },
+        ]},
+        { name: '感染指標', items: [
+          { name: 'Lactate', value: '4.8', unit: 'mmol/L', flag: 'crit' },
+          { name: 'CRP', value: '188', unit: 'mg/L', flag: 'crit' },
+          { name: 'Procalcitonin', value: '12.4', unit: 'ng/mL', flag: 'crit' },
+        ]},
+        { name: 'BMP', items: [
+          { name: 'Cr', value: '2.1', unit: 'mg/dL', flag: 'high' },
+          { name: 'BUN', value: '38', unit: 'mg/dL', flag: 'high' },
+        ]},
+        { name: 'ABG', items: [
+          { name: 'pH', value: '7.28', flag: 'low' },
+          { name: 'pCO2', value: '28', unit: 'mmHg', flag: 'low' },
+          { name: 'HCO3', value: '14', unit: 'mEq/L', flag: 'low' },
+        ]},
+      ]
+    },
+    dka: {
+      timeLabel: time || 'ER',
+      groups: [
+        { name: 'BMP', items: [
+          { name: 'Glucose', value: '518', unit: 'mg/dL', flag: 'crit' },
+          { name: 'K', value: '5.6', unit: 'mEq/L', flag: 'high' },
+          { name: 'Na', value: '132', unit: 'mEq/L', flag: 'low' },
+          { name: 'Anion Gap', value: '24', flag: 'high' },
+        ]},
+        { name: 'ABG', items: [
+          { name: 'pH', value: '7.10', flag: 'crit' },
+          { name: 'HCO3', value: '8', unit: 'mEq/L', flag: 'crit' },
+          { name: 'pCO2', value: '22', unit: 'mmHg', flag: 'low' },
+        ]},
+        { name: '尿液', items: [
+          { name: 'Ketones', value: 'Large', flag: 'crit' },
+          { name: 'Glucose', value: '4+', flag: 'high' },
+        ]},
+      ]
+    },
+    trauma: {
+      timeLabel: time || 'ER',
+      groups: [
+        { name: 'CBC', items: [
+          { name: 'Hb', value: '9.2', unit: 'g/dL', flag: 'low' },
+          { name: 'Hct', value: '27', unit: '%', flag: 'low' },
+        ]},
+        { name: '凝血', items: [
+          { name: 'PT/INR', value: '1.8', flag: 'high' },
+          { name: 'aPTT', value: '42', unit: 's', flag: 'high' },
+          { name: 'Fibrinogen', value: '125', unit: 'mg/dL', flag: 'low' },
+        ]},
+        { name: 'ABG', items: [
+          { name: 'Lactate', value: '5.2', unit: 'mmol/L', flag: 'crit' },
+          { name: 'BE', value: '-8', flag: 'low' },
+        ]},
+        { name: '血型', items: [
+          { name: 'Type', value: 'O+' },
+        ]},
+      ]
+    },
+    chf: {
+      timeLabel: time || 'ER',
+      groups: [
+        { name: '心臟', items: [
+          { name: 'BNP', value: '1840', unit: 'pg/mL', flag: 'crit' },
+          { name: 'Troponin-I', value: '0.04', unit: 'ng/mL' },
+        ]},
+        { name: 'BMP', items: [
+          { name: 'Cr', value: '1.6', unit: 'mg/dL', flag: 'high' },
+          { name: 'Na', value: '132', unit: 'mEq/L', flag: 'low' },
+        ]},
+      ]
+    },
+    normal: {
+      timeLabel: time || '',
+      groups: [
+        { name: 'CBC', items: [
+          { name: 'WBC', value: '7.2', unit: '10³/µL' },
+          { name: 'Hb', value: '14.5', unit: 'g/dL' },
+          { name: 'Plt', value: '245', unit: '10³/µL' },
+        ]},
+        { name: 'BMP', items: [
+          { name: 'Na', value: '140', unit: 'mEq/L' },
+          { name: 'K', value: '4.0', unit: 'mEq/L' },
+          { name: 'Cr', value: '0.9', unit: 'mg/dL' },
+          { name: 'Glucose', value: '95', unit: 'mg/dL' },
+        ]},
+      ]
+    },
+  };
+  state.labs = presets[name] || presets.normal;
+  document.getElementById('lab-raw').value = JSON.stringify(state.labs, null, 2);
+  publishStateDebounced();
+}
+window.setLabsPreset = setLabsPreset;
+
+document.getElementById('lab-raw').addEventListener('input', e => {
+  try {
+    state.labs = JSON.parse(e.target.value);
+    publishStateDebounced();
+  } catch {}
+});
+document.getElementById('lab-time').addEventListener('input', e => {
+  if (state.labs) {
+    state.labs.timeLabel = e.target.value;
+    publishStateDebounced();
+  }
+});
+
+// =================== Tabs ===================
+document.querySelectorAll('nav.tabs button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.tab-pane').forEach(p => {
+      p.classList.toggle('active', p.dataset.tab === b.dataset.tab);
+    });
+  });
+});
+
+// =================== Shock / CPR ===================
+let selectedJoules = 200;
+document.querySelectorAll('#joule-pick button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#joule-pick button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    selectedJoules = parseInt(b.dataset.j);
+  });
+});
+document.getElementById('btn-shock').addEventListener('click', () => {
+  state.shockCounter = (state.shockCounter || 0) + 1;
+  publishStateDebounced();
+  publishAction({ type: 'shock', joules: selectedJoules });
+  navigator.vibrate?.([100, 50, 100]);
+});
+document.getElementById('btn-cpr-toggle').addEventListener('click', () => {
+  state.cpr = !state.cpr;
+  syncToggles();
+  publishStateDebounced();
+});
+
+function flashScreen(text) {
+  publishAction({ type: 'flash', text });
+}
+window.flashScreen = flashScreen;
+
+// =================== Meds ===================
+function addMed() {
+  const name = document.getElementById('med-name').value.trim();
+  const dose = document.getElementById('med-dose').value.trim();
+  if (!name) return;
+  pushMed(name, dose);
+  document.getElementById('med-name').value = '';
+  document.getElementById('med-dose').value = '';
+}
+function quickMed(name, dose) { pushMed(name, dose); }
+function pushMed(name, dose) {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  const time = `${p(d.getHours())}:${p(d.getMinutes())}`;
+  state.medsList = (state.medsList || []).concat([{ name, dose, time }]);
+  publishStateDebounced();
+}
+function clearMeds() { state.medsList = []; publishStateDebounced(); }
+window.addMed = addMed;
+window.quickMed = quickMed;
+window.clearMeds = clearMeds;
+
+// =================== Session / QR ===================
+document.getElementById('session-id').addEventListener('click', () => {
+  const url = new URL(location.href);
+  url.pathname = url.pathname.replace(/control\.html$/, 'display.html');
+  url.searchParams.set('s', sessionId);
+  document.getElementById('display-url').textContent = url.toString();
+  document.getElementById('qr-modal').classList.add('active');
+});
+function copyDisplayUrl() {
+  const t = document.getElementById('display-url').textContent;
+  navigator.clipboard?.writeText(t);
+  alert('已複製');
+}
+window.copyDisplayUrl = copyDisplayUrl;
+
+// =================== Scenarios ===================
+function loadScenario(name) {
+  const scenarios = {
+    stemi: {
+      patient: { name: '陳大明', age: 58, sex: 'M', weight: 75, cc: '胸痛 30 分鐘，向左肩放射', pmh: '高血壓、第二型糖尿病', allergy: 'NKDA', meds: 'Amlodipine 5mg QD, Metformin 500mg BID' },
+      vitals: { hr: 88, sbp: 145, dbp: 88, spo2: 96, pi: 2.0, rr: 20, etco2: 36, temp: 36.8, tempSite: '耳溫' },
+      rhythm: 'NSR', ectopy: 'PVC', stemiRegion: 'inferior', stOffset: 0.3,
+      pulseless: false, cpr: false,
+      panel: { mode: 'patient' },
+      notes: '',
+    },
+    vfib_arrest: {
+      patient: { name: '李先生', age: 65, sex: 'M', weight: 80, cc: '突然倒地，無反應', pmh: '冠心症、舊心肌梗塞', allergy: 'NKDA', meds: 'Aspirin, Atorvastatin' },
+      vitals: { hr: 0, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 12, temp: 36.0, tempSite: '耳溫' },
+      rhythm: 'VF', ectopy: 'none', stemiRegion: null, stOffset: 0,
+      pulseless: true, cpr: false,
+      panel: { mode: 'patient' },
+      notes: '無脈搏、無呼吸 → 立即開始 CPR + 準備除顫',
+    },
+    svt: {
+      patient: { name: '林小姐', age: 32, sex: 'F', weight: 55, cc: '突然心悸 10 分鐘', pmh: '無', allergy: 'NKDA', meds: '無' },
+      vitals: { hr: 188, sbp: 108, dbp: 70, spo2: 98, pi: 1.8, rr: 18, etco2: 36, temp: 36.7, tempSite: '耳溫' },
+      rhythm: 'SVT', ectopy: 'none', stemiRegion: null, stOffset: 0,
+      pulseless: false, cpr: false,
+      panel: { mode: 'patient' },
+    },
+    chb: {
+      patient: { name: '吳老先生', age: 78, sex: 'M', weight: 60, cc: '頭暈、近乎昏厥', pmh: '高血壓', allergy: 'NKDA', meds: 'Bisoprolol' },
+      vitals: { hr: 35, sbp: 88, dbp: 55, spo2: 96, pi: 1.5, rr: 18, etco2: 35, temp: 36.5, tempSite: '耳溫' },
+      rhythm: 'AVB3', ectopy: 'none', stemiRegion: null, stOffset: 0,
+      pulseless: false, cpr: false,
+      panel: { mode: 'patient' },
+    },
+    asthma: {
+      patient: { name: '黃同學', age: 19, sex: 'M', weight: 65, cc: '氣喘發作、喘鳴', pmh: '氣喘', allergy: 'NKDA', meds: 'Albuterol PRN' },
+      vitals: { hr: 132, sbp: 138, dbp: 86, spo2: 86, pi: 1.2, rr: 30, etco2: 55, temp: 37.0, tempSite: '耳溫' },
+      rhythm: 'STach', ectopy: 'none', stemiRegion: null, stOffset: 0,
+      pulseless: false, cpr: false,
+      panel: { mode: 'patient' },
+      notes: '雙肺廣泛 wheezing，能說 2-3 字，三角肌使用',
+    },
+    septic: {
+      patient: { name: '張先生', age: 70, sex: 'M', weight: 68, cc: '發燒、意識變化', pmh: '糖尿病、慢性腎臟病', allergy: 'NKDA', meds: 'Insulin' },
+      vitals: { hr: 132, sbp: 78, dbp: 45, spo2: 92, pi: 0.9, rr: 28, etco2: 28, temp: 39.2, tempSite: '耳溫' },
+      rhythm: 'STach', ectopy: 'none', stemiRegion: null, stOffset: 0,
+      pulseless: false, cpr: false,
+      panel: { mode: 'patient' },
+    },
+    trauma: {
+      patient: { name: '不詳 / John Doe', age: 28, sex: 'M', weight: 75, cc: '機車與汽車相撞', pmh: '不詳', allergy: '不詳', meds: '不詳' },
+      vitals: { hr: 132, sbp: 88, dbp: 56, spo2: 94, pi: 1.0, rr: 26, etco2: 32, temp: 36.0, tempSite: '耳溫' },
+      rhythm: 'STach', ectopy: 'none', stemiRegion: null, stOffset: 0,
+      pulseless: false, cpr: false,
+      panel: { mode: 'patient' },
+      notes: 'GCS E2V3M5 = 10\n右下肢明顯變形、左前胸壁壓痛',
+    },
+    opioid: {
+      patient: { name: '陳同學', age: 22, sex: 'M', weight: 60, cc: '被發現倒臥', pmh: '不詳', allergy: 'NKDA', meds: '不詳' },
+      vitals: { hr: 56, sbp: 96, dbp: 60, spo2: 82, pi: 1.0, rr: 6, etco2: 58, temp: 35.5, tempSite: '耳溫' },
+      rhythm: 'SBrady', ectopy: 'none', stemiRegion: null, stOffset: 0,
+      pulseless: false, cpr: false,
+      panel: { mode: 'patient' },
+      notes: '瞳孔縮小針尖大，現場找到空藥袋',
+    },
+    hypoglycemia: {
+      patient: { name: '黃女士', age: 68, sex: 'F', weight: 58, cc: '意識不清', pmh: '糖尿病 30 年', allergy: 'NKDA', meds: 'Insulin glargine, Glipizide' },
+      vitals: { hr: 110, sbp: 132, dbp: 86, spo2: 97, pi: 1.5, rr: 18, etco2: 35, temp: 36.4, tempSite: '耳溫' },
+      rhythm: 'STach', ectopy: 'none', stemiRegion: null, stOffset: 0,
+      pulseless: false, cpr: false,
+      panel: { mode: 'notes' },
+      notes: '血糖機讀值：38 mg/dL\n冷汗、抖動、無法應答',
+    },
+    dka: {
+      patient: { name: '王同學', age: 24, sex: 'F', weight: 52, cc: '腹痛、嘔吐 2 天', pmh: '第一型糖尿病', allergy: 'NKDA', meds: 'Insulin' },
+      vitals: { hr: 122, sbp: 102, dbp: 64, spo2: 99, pi: 1.5, rr: 28, etco2: 22, temp: 37.4, tempSite: '耳溫' },
+      rhythm: 'STach', ectopy: 'none', stemiRegion: null, stOffset: 0,
+      pulseless: false, cpr: false,
+      panel: { mode: 'patient' },
+      notes: 'Kussmaul 呼吸，丙酮味，血糖機 HI',
+    },
+    normal: {
+      patient: { name: '一般病人', age: 35, sex: 'M', weight: 70, cc: '健檢', pmh: '無', allergy: 'NKDA', meds: '無' },
+      vitals: { hr: 72, sbp: 120, dbp: 80, spo2: 99, pi: 3.0, rr: 14, etco2: 38, temp: 36.6, tempSite: '耳溫' },
+      rhythm: 'NSR', ectopy: 'none', stemiRegion: null, stOffset: 0,
+      pulseless: false, cpr: false,
+      panel: { mode: 'blank' },
+      notes: '',
+    },
+  };
+  const s = scenarios[name];
+  if (!s) return;
+  Object.assign(state, s);
+  state.vitals.map = (state.vitals.sbp + 2 * state.vitals.dbp) / 3;
+  syncUIFromState();
+  publishState(true);
+}
+window.loadScenario = loadScenario;
+
+// =================== UI sync ===================
+function syncUIFromState() {
+  document.getElementById('r-hr').value = state.vitals.hr;     document.getElementById('v-hr').textContent = Math.round(state.vitals.hr);
+  document.getElementById('r-sbp').value = state.vitals.sbp;   document.getElementById('v-sbp').textContent = Math.round(state.vitals.sbp);
+  document.getElementById('r-dbp').value = state.vitals.dbp;   document.getElementById('v-dbp').textContent = Math.round(state.vitals.dbp);
+  document.getElementById('r-spo2').value = state.vitals.spo2; document.getElementById('v-spo2').textContent = Math.round(state.vitals.spo2);
+  document.getElementById('r-pi').value = state.vitals.pi;     document.getElementById('v-pi').textContent = state.vitals.pi.toFixed(1);
+  document.getElementById('r-rr').value = state.vitals.rr;     document.getElementById('v-rr').textContent = Math.round(state.vitals.rr);
+  document.getElementById('r-etco2').value = state.vitals.etco2;document.getElementById('v-etco2').textContent = Math.round(state.vitals.etco2);
+  document.getElementById('r-temp').value = state.vitals.temp; document.getElementById('v-temp').textContent = state.vitals.temp.toFixed(1);
+  document.getElementById('i-tempsite').value = state.vitals.tempSite || '耳溫';
+
+  document.querySelectorAll('#rhythm-btns button').forEach(x => x.classList.toggle('active', x.dataset.r === state.rhythm));
+  document.querySelectorAll('#ectopy-btns button').forEach(x => x.classList.toggle('active', x.dataset.e === (state.ectopy || 'none')));
+  document.querySelectorAll('#stemi-btns button').forEach(x => x.classList.toggle('active', (x.dataset.s || '') === (state.stemiRegion || '')));
+  document.getElementById('r-st').value = state.stOffset; document.getElementById('v-st').textContent = state.stOffset.toFixed(2);
+  document.querySelectorAll('#panel-btns button').forEach(x => x.classList.toggle('active', x.dataset.m === state.panel?.mode));
+
+  document.getElementById('pt-name').value = state.patient.name || '';
+  document.getElementById('pt-age').value = state.patient.age || '';
+  document.getElementById('pt-sex').value = state.patient.sex || 'M';
+  document.getElementById('pt-weight').value = state.patient.weight || '';
+  document.getElementById('pt-cc').value = state.patient.cc || '';
+  document.getElementById('pt-pmh').value = state.patient.pmh || '';
+  document.getElementById('pt-meds').value = state.patient.meds || '';
+  document.getElementById('pt-allergy').value = state.patient.allergy || '';
+  document.getElementById('notes-text').value = state.notes || '';
+  document.getElementById('img-url').value = state.imagingUrl || '';
+  document.getElementById('img-caption').value = state.imagingCaption || '';
+  document.getElementById('iframe-url').value = state.iframeUrl || '';
+  document.getElementById('custom-html').value = state.customHtml || '';
+  syncToggles();
+}
+syncUIFromState();
+</script>
+</body>
+</html>

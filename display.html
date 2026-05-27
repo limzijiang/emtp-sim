@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EMT-P Sim · Display</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; width: 100%; }
+  body {
+    background: #000;
+    color: #fff;
+    font-family: 'Helvetica Neue', Arial, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #connbar {
+    position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.6);
+    padding: 4px 14px;
+    font-size: 11px;
+    color: #777;
+    z-index: 100;
+    border-radius: 0 0 6px 6px;
+    pointer-events: none;
+  }
+  #connbar.connected { color: #6c6; }
+  #connbar.error { color: #c66; }
+
+  .display {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ============== LEFT: ZOLL X MONITOR ============== */
+  .monitor {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    border-right: 2px solid #1a1a1a;
+    overflow: hidden;
+  }
+
+  .monitor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 10px;
+    background: linear-gradient(to bottom, #2a2a2a, #1a1a1a);
+    border-bottom: 1px solid #333;
+    font-size: 11px;
+    color: #aaa;
+    height: 26px;
+    flex: 0 0 auto;
+  }
+  .monitor-header .patient { font-weight: bold; color: #ddd; }
+  .monitor-header .clock { font-family: 'Courier New', monospace; }
+  .monitor-header .battery::before { content: '🔋 '; }
+
+  .waveform-row {
+    flex: 1 1 0;
+    display: grid;
+    grid-template-columns: 1fr 130px;
+    border-bottom: 1px solid #1a1a1a;
+    position: relative;
+    min-height: 0;
+  }
+
+  .waveform-canvas-wrap {
+    position: relative;
+    overflow: hidden;
+    background: #000;
+  }
+  .waveform-canvas-wrap canvas {
+    width: 100%; height: 100%;
+    display: block;
+  }
+  .waveform-label {
+    position: absolute;
+    top: 4px; left: 8px;
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 0 4px #000;
+    z-index: 2;
+  }
+  .waveform-label.green { color: #4f5; }
+  .waveform-label.cyan { color: #4ee; }
+  .waveform-label.yellow { color: #fc4; }
+
+  .numeric-box {
+    border-left: 1px solid #1a1a1a;
+    padding: 4px 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: right;
+    overflow: hidden;
+  }
+  .numeric-box .row1 {
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-align: left;
+  }
+  .numeric-box .row1 .units {
+    font-size: 10px;
+    color: #888;
+    margin-left: 4px;
+  }
+  .numeric-box .value {
+    font-size: 64px;
+    font-weight: 700;
+    line-height: 0.95;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    letter-spacing: -3px;
+  }
+  .numeric-box .sub {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 2px;
+    text-align: left;
+  }
+  .numeric-box.green { color: #4f5; }
+  .numeric-box.cyan  { color: #4ee; }
+  .numeric-box.yellow{ color: #fc4; }
+  .numeric-box.white { color: #fff; }
+  .numeric-box.orange{ color: #f93; }
+  .numeric-box.red   { color: #f44; }
+
+  .extra-numerics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid #1a1a1a;
+    background: #050505;
+    height: 96px;
+    flex: 0 0 auto;
+  }
+  .extra-numerics .numeric-box {
+    text-align: left;
+    padding: 6px 10px;
+  }
+  .extra-numerics .numeric-box:first-child { border-left: none; }
+  .extra-numerics .numeric-box .value { font-size: 40px; }
+
+  /* Alarms */
+  .alarm-high {
+    color: #f44 !important;
+    animation: alarmBlink 1s infinite;
+  }
+  @keyframes alarmBlink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.35; }
+  }
+
+  /* ============== RIGHT: INFO PANEL ============== */
+  .info-panel {
+    background: #0a0e14;
+    color: #eee;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 22px 28px;
+    position: relative;
+  }
+  .info-panel.mode-blank {
+    background: #000;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .info-panel.mode-blank::after {
+    content: '';
+  }
+
+  .panel-header {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #2a2f38;
+    padding-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: bold;
+  }
+
+  /* Patient mode */
+  .patient-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .patient-field {
+    background: #161b22;
+    border-left: 3px solid #4ee;
+    padding: 10px 16px;
+    border-radius: 2px;
+  }
+  .patient-field .label {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+  .patient-field .value { font-size: 22px; }
+  .patient-field.wide { grid-column: 1 / -1; }
+  .patient-field.wide .value { font-size: 18px; line-height: 1.4; }
+
+  /* Labs */
+  .labs-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .lab-row {
+    background: #161b22;
+    padding: 10px 14px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: baseline;
+    border-radius: 2px;
+    border-left: 3px solid #2a2f38;
+  }
+  .lab-row.high  { border-left-color: #f93; }
+  .lab-row.low   { border-left-color: #4ae; }
+  .lab-row.crit  { border-left-color: #f44; }
+  .lab-name { font-size: 12px; color: #aaa; }
+  .lab-value { font-size: 22px; font-weight: 600; }
+  .lab-value.high { color: #fc4; }
+  .lab-value.low  { color: #4ae; }
+  .lab-value.crit { color: #f55; }
+  .lab-unit { font-size: 10px; color: #777; }
+  .lab-section {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    color: #6cf;
+    margin-top: 8px;
+    border-bottom: 1px dotted #2a2f38;
+    padding-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* 12-lead */
+  .ekg12-wrap {
+    background: #fff;
+    padding: 8px 10px 4px 10px;
+    border-radius: 4px;
+    height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+  }
+  .ekg12-meta {
+    color: #000;
+    font-size: 11px;
+    display: flex; justify-content: space-between;
+    margin-bottom: 4px;
+    font-family: 'Courier New', monospace;
+  }
+  .ekg12-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    flex: 1;
+    gap: 0;
+  }
+  .ekg12-cell {
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #fdd;
+  }
+  .ekg12-cell canvas { display: block; width: 100%; height: 100%; }
+  .ekg12-cell .lead-name {
+    position: absolute;
+    top: 2px; left: 4px;
+    font-size: 12px;
+    color: #000;
+    font-weight: bold;
+    z-index: 2;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  .ekg12-rhythm {
+    height: 110px;
+    background: #fff;
+    border: 1px solid #fdd;
+    margin-top: 2px;
+    position: relative;
+  }
+  .ekg12-rhythm canvas { display: block; width: 100%; height: 100%; }
+
+  /* Imaging */
+  .imaging-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 80px);
+  }
+  .imaging-wrap img, .imaging-wrap video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .imaging-caption {
+    color: #aaa;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+
+  /* Notes */
+  .notes-content {
+    font-size: 26px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    padding: 20px;
+    color: #eee;
+    font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  }
+
+  /* Meds */
+  .meds-list { list-style: none; padding: 0; margin: 0; }
+  .meds-list li {
+    background: #161b22;
+    margin-bottom: 8px;
+    padding: 12px 16px;
+    border-left: 3px solid #fc4;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 14px;
+    align-items: baseline;
+    border-radius: 2px;
+  }
+  .meds-list .med-name { font-size: 18px; font-weight: 600; color: #fc4; }
+  .meds-list .med-dose { font-size: 16px; color: #eee; }
+  .meds-list .med-time { font-size: 12px; color: #888; font-family: 'Courier New', monospace; }
+
+  /* Custom HTML */
+  .custom-wrap {
+    color: #eee;
+    font-size: 16px;
+    line-height: 1.6;
+    padding: 10px;
+  }
+  .custom-wrap h1, .custom-wrap h2, .custom-wrap h3 { color: #6cf; }
+  .custom-wrap table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+  .custom-wrap td, .custom-wrap th { border: 1px solid #2a2f38; padding: 6px 10px; }
+  .custom-wrap th { background: #1a2030; }
+
+  /* Iframe */
+  .iframe-wrap {
+    width: 100%; height: calc(100vh - 80px);
+  }
+  .iframe-wrap iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+
+  /* Shock flash overlay */
+  .shock-flash {
+    position: fixed; inset: 0;
+    background: #fff;
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .shock-flash.active { animation: shockFlash 0.45s; }
+  @keyframes shockFlash {
+    0% { opacity: 0; }
+    18% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .shock-label {
+    position: fixed;
+    top: 40%; left: 50%; transform: translate(-50%, -50%);
+    background: rgba(255,80,0,0.95);
+    color: #fff;
+    padding: 14px 36px;
+    border-radius: 6px;
+    font-size: 28px;
+    font-weight: bold;
+    z-index: 1000;
+    display: none;
+  }
+  .shock-label.active { display: block; animation: shockFade 1.6s; }
+  @keyframes shockFade {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+    20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .cpr-indicator {
+    position: fixed;
+    top: 32px; left: 50%; transform: translateX(-50%);
+    background: #f44;
+    color: #fff;
+    padding: 5px 18px;
+    border-radius: 3px;
+    font-size: 15px;
+    font-weight: bold;
+    z-index: 50;
+    display: none;
+    animation: alarmBlink 1s infinite;
+  }
+  .cpr-indicator.active { display: block; }
+
+  .value.pulseless {
+    color: #777 !important;
+  }
+  .value.pulseless::before {
+    content: '--';
+  }
+  .value.pulseless > * { display: none; }
+</style>
+</head>
+<body>
+
+<div id="connbar"><span id="conn-status">連線中…</span> · Session: <span id="conn-session">—</span></div>
+<div class="shock-flash" id="shock-flash"></div>
+<div class="shock-label" id="shock-label">SHOCK DELIVERED</div>
+<div class="cpr-indicator" id="cpr-indicator">CPR IN PROGRESS</div>
+
+<div class="display">
+  <div class="monitor">
+    <div class="monitor-header">
+      <span class="patient" id="hdr-patient">Patient</span>
+      <span><span class="clock" id="hdr-clock">--:--:--</span> · <span class="battery">100%</span></span>
+    </div>
+
+    <div class="waveform-row">
+      <div class="waveform-canvas-wrap">
+        <div class="waveform-label green">II · 6s</div>
+        <canvas id="cv-ecg"></canvas>
+      </div>
+      <div class="numeric-box green">
+        <div class="row1">HR<span class="units">bpm</span></div>
+        <div class="value" id="v-hr">75</div>
+        <div class="sub" id="v-rhythm">NSR</div>
+      </div>
+    </div>
+
+    <div class="waveform-row">
+      <div class="waveform-canvas-wrap">
+        <div class="waveform-label cyan">PLETH</div>
+        <canvas id="cv-spo2"></canvas>
+      </div>
+      <div class="numeric-box cyan">
+        <div class="row1">SpO₂<span class="units">%</span></div>
+        <div class="value" id="v-spo2">98</div>
+        <div class="sub">PI <span id="v-pi">2.1</span></div>
+      </div>
+    </div>
+
+    <div class="waveform-row">
+      <div class="waveform-canvas-wrap">
+        <div class="waveform-label yellow">CO₂</div>
+        <canvas id="cv-co2"></canvas>
+      </div>
+      <div class="numeric-box yellow">
+        <div class="row1">EtCO₂<span class="units">mmHg</span></div>
+        <div class="value" id="v-etco2">38</div>
+        <div class="sub">RR <span id="v-rr">16</span></div>
+      </div>
+    </div>
+
+    <div class="extra-numerics">
+      <div class="numeric-box white">
+        <div class="row1">NIBP<span class="units">mmHg</span></div>
+        <div class="value"><span id="v-sbp">128</span>/<span id="v-dbp">82</span></div>
+        <div class="sub">MAP <span id="v-map">97</span> · <span id="v-bptime">手動</span></div>
+      </div>
+      <div class="numeric-box orange">
+        <div class="row1">Temp<span class="units">°C</span></div>
+        <div class="value" id="v-temp">36.7</div>
+        <div class="sub" id="v-tempsite">耳溫</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-panel mode-blank" id="info-panel">
+    <!-- populated by JS -->
+  </div>
+</div>
+
+<script src="https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js"></script>
+<script>
+'use strict';
+
+// =================== Session / URL params ===================
+const params = new URLSearchParams(location.search);
+const sessionId = (params.get('s') || params.get('session') || 'demo').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32) || 'demo';
+const broker = params.get('broker') || 'wss://broker.hivemq.com:8884/mqtt';
+document.getElementById('conn-session').textContent = sessionId;
+
+// =================== Default state ===================
+let state = {
+  patient: {
+    name: '王小明', age: 58, sex: 'M', weight: 70,
+    cc: '胸痛 30 分鐘', pmh: '高血壓、糖尿病', allergy: 'NKDA', meds: 'Amlodipine 5mg QD',
+  },
+  vitals: {
+    hr: 75, sbp: 128, dbp: 82, map: 97,
+    spo2: 98, pi: 2.1, rr: 16, etco2: 38,
+    temp: 36.7, tempSite: '耳溫',
+  },
+  rhythm: 'NSR',
+  ectopy: 'none',
+  stemiRegion: null,
+  stOffset: 0,
+  pulseless: false,
+  cpr: false,
+  panel: { mode: 'blank' },
+  notes: '',
+  labs: null,
+  imagingUrl: '',
+  imagingCaption: '',
+  customHtml: '',
+  iframeUrl: '',
+  medsList: [],
+  shockCounter: 0,
+  twelveLeadFreeze: null,
+};
+let lastShockCount = 0;
+
+// =================== ECG model ===================
+const LEAD_FACTORS = {
+  I:    { P: 0.55, Q: -0.3, R: 0.65, S: -0.15, T: 0.5 },
+  II:   { P: 1.0,  Q: -0.5, R: 1.0,  S: -0.25, T: 0.75 },
+  III:  { P: 0.4,  Q: -0.5, R: 0.5,  S: -0.3,  T: 0.4 },
+  aVR:  { P: -0.85,Q: 0.4,  R: -0.75,S: 0.2,   T: -0.55 },
+  aVL:  { P: 0.3,  Q: -0.2, R: 0.4,  S: -0.1,  T: 0.3 },
+  aVF:  { P: 0.7,  Q: -0.5, R: 0.7,  S: -0.3,  T: 0.55 },
+  V1:   { P: 0.15, Q: 0,    R: 0.2,  S: -1.0,  T: -0.2 },
+  V2:   { P: 0.2,  Q: 0,    R: 0.45, S: -1.4,  T: 0.1 },
+  V3:   { P: 0.22, Q: -0.05,R: 0.9,  S: -1.0,  T: 0.45 },
+  V4:   { P: 0.25, Q: -0.1, R: 1.3,  S: -0.45, T: 0.6 },
+  V5:   { P: 0.3,  Q: -0.15,R: 1.4,  S: -0.25, T: 0.6 },
+  V6:   { P: 0.3,  Q: -0.15,R: 1.2,  S: -0.1,  T: 0.5 },
+};
+const STEMI_REGIONS = {
+  anterior:     { V1: 1.0, V2: 1.3, V3: 1.3, V4: 1.0, aVR: -0.3, II: -0.2, III: -0.2, aVF: -0.2 },
+  inferior:     { II: 1.0, III: 1.3, aVF: 1.0, I: -0.4, aVL: -0.6, V2: -0.2 },
+  lateral:      { I: 1.0, aVL: 1.0, V5: 0.9, V6: 0.9 },
+  septal:       { V1: 1.0, V2: 1.1 },
+  anterolateral:{ V1: 0.6, V2: 0.9, V3: 1.0, V4: 1.0, V5: 1.0, V6: 0.9, I: 0.8, aVL: 0.8 },
+  posterior:    { V1: -0.9, V2: -1.2, V3: -0.9, II: 0.4, III: 0.5, aVF: 0.5 },
+  rv:           { III: 0.8, aVF: 0.6, V1: 0.7 },
+};
+
+function gauss(t, mu, sigma) {
+  const d = (t - mu) / sigma;
+  if (d * d > 36) return 0;
+  return Math.exp(-0.5 * d * d);
+}
+
+// Beat schedule (shared across waveforms)
+let beatSchedule = { beats: [], stateKey: '', wenckebachIdx: 0, mobitzIdx: 0 };
+
+function rhythmKey() {
+  return `${state.rhythm}|${state.vitals.hr}|${state.ectopy}|${state.stemiRegion}|${state.stOffset}|${state.pulseless ? 'p' : ''}|${state.cpr ? 'c' : ''}`;
+}
+
+function scheduleBeats(currentTime) {
+  const key = rhythmKey();
+  if (beatSchedule.stateKey !== key) {
+    // truncate future beats
+    beatSchedule.beats = beatSchedule.beats.filter(b => b.t < currentTime + 0.05);
+    beatSchedule.stateKey = key;
+    beatSchedule.wenckebachIdx = 0;
+    beatSchedule.mobitzIdx = 0;
+  }
+  while (!beatSchedule.beats.length || beatSchedule.beats[beatSchedule.beats.length-1].t < currentTime + 2.5) {
+    const last = beatSchedule.beats[beatSchedule.beats.length-1];
+    const nb = nextBeat(last ? last.t : currentTime, state);
+    if (!nb) break;
+    beatSchedule.beats.push(nb);
+  }
+  while (beatSchedule.beats.length > 80 && beatSchedule.beats[0].t < currentTime - 12) {
+    beatSchedule.beats.shift();
+  }
+}
+
+function nextBeat(lastT, st) {
+  const hr = Math.max(20, Math.min(280, st.vitals.hr || 75));
+  const baseRR = 60 / hr;
+  const beat = {
+    t: lastT + baseRR,
+    skipP: false,
+    wideQrs: false,
+    isPvc: false,
+    stOffset: st.stOffset || (st.stemiRegion ? 0.25 : 0),
+    pacer: false,
+    inverted: false,
+    morphScale: 1.0,
+  };
+
+  switch (st.rhythm) {
+    case 'NSR':
+    case 'STach':
+    case 'SBrady':
+      break;
+    case 'AFib':
+      beat.t = lastT + baseRR * (0.55 + Math.random() * 0.9);
+      beat.skipP = true;
+      beat.fibBaseline = true;
+      break;
+    case 'AFlutter':
+      beat.t = lastT + baseRR * (0.9 + Math.random() * 0.2);
+      beat.skipP = true;
+      beat.flutterWaves = true;
+      break;
+    case 'SVT':
+      beat.skipP = true;
+      break;
+    case 'VT':
+      beat.skipP = true;
+      beat.wideQrs = true;
+      beat.morphScale = 1.4;
+      break;
+    case 'pVT':
+      beat.skipP = true;
+      beat.wideQrs = true;
+      beat.morphScale = 1.4;
+      beat.inverted = (Math.floor((lastT + baseRR) * 2) % 6 < 3); // alternating
+      break;
+    case 'Asystole':
+    case 'VF':
+      return null;
+    case 'AVB1':
+      beat.longPR = true;
+      break;
+    case 'AVB2-I': // Wenckebach 4:3
+      beatSchedule.wenckebachIdx = (beatSchedule.wenckebachIdx + 1) % 4;
+      beat.prDelay = beatSchedule.wenckebachIdx * 0.03;
+      if (beatSchedule.wenckebachIdx === 0) {
+        beat.t = lastT + baseRR;
+        beat.dropped = true;
+        return beat;
+      }
+      break;
+    case 'AVB2-II': // 3:1
+      beatSchedule.mobitzIdx = (beatSchedule.mobitzIdx + 1) % 3;
+      if (beatSchedule.mobitzIdx === 0) {
+        beat.dropped = true;
+        return beat;
+      }
+      break;
+    case 'AVB3':
+      beat.t = lastT + 60/35; // slow ventricular escape
+      beat.skipP = true;
+      beat.wideQrs = true;
+      beat.indepP = true;
+      break;
+    case 'Paced':
+      beat.pacer = true;
+      beat.wideQrs = true;
+      break;
+    case 'PEA':
+      break;
+  }
+
+  // Ectopy
+  if (st.ectopy === 'PVC' && Math.random() < 0.18 && !beat.wideQrs) {
+    beat.isPvc = true;
+    beat.wideQrs = true;
+    beat.skipP = true;
+    beat.t = lastT + baseRR * 0.65;
+    beat.morphScale = 1.4;
+    beat.inverted = true;
+  } else if (st.ectopy === 'bigeminy') {
+    if (beatSchedule.beats.length % 2 === 1) {
+      beat.isPvc = true;
+      beat.wideQrs = true;
+      beat.skipP = true;
+      beat.t = lastT + baseRR * 0.7;
+      beat.morphScale = 1.4;
+      beat.inverted = true;
+    }
+  } else if (st.ectopy === 'PAC' && Math.random() < 0.15) {
+    beat.t = lastT + baseRR * 0.7;
+  }
+  return beat;
+}
+
+function beatContribution(dt, beat, lead) {
+  const f = LEAD_FACTORS[lead] || LEAD_FACTORS.II;
+  let v = 0;
+  const inv = beat.inverted ? -1 : 1;
+  const sc = beat.morphScale || 1;
+  const prDelay = beat.prDelay || 0;
+  const pAt = -0.18 + (beat.longPR ? -0.08 : 0) - prDelay * 0.5;
+  const qrsAt = 0 + prDelay;
+
+  if (!beat.skipP && !beat.dropped) {
+    v += 0.15 * f.P * gauss(dt, pAt, 0.025);
+  }
+
+  if (beat.dropped) return v;
+
+  if (beat.pacer) {
+    v += 1.8 * gauss(dt, qrsAt - 0.006, 0.0015);
+  }
+
+  if (beat.wideQrs) {
+    v += sc * 1.0 * f.R * inv * gauss(dt, qrsAt + 0.005, 0.045);
+    v += sc * -0.35 * f.R * inv * gauss(dt, qrsAt + 0.065, 0.05);
+    v += sc * 0.35 * (-f.T) * gauss(dt, qrsAt + 0.30, 0.07);
+  } else {
+    v += 0.1 * f.Q * gauss(dt, qrsAt - 0.022, 0.008);
+    v += 1.0 * f.R * gauss(dt, qrsAt, 0.012);
+    v += 0.3 * f.S * gauss(dt, qrsAt + 0.025, 0.014);
+    v += 0.32 * f.T * gauss(dt, qrsAt + 0.21, 0.05);
+  }
+
+  // ST elevation/depression
+  if (beat.stOffset && state.stemiRegion) {
+    const sf = STEMI_REGIONS[state.stemiRegion]?.[lead] || 0;
+    if (sf !== 0) {
+      v += beat.stOffset * sf * gauss(dt, qrsAt + 0.10, 0.055) * 1.8;
+    }
+  }
+  return v;
+}
+
+function ecgValueAt(t, lead) {
+  if (state.rhythm === 'VF') {
+    // Coarse VF: chaotic 4-6 Hz with envelope
+    const a = 0.6 * Math.sin(t * 2*Math.PI*4.5) + 0.3 * Math.sin(t * 2*Math.PI*7) + 0.2 * Math.sin(t*2*Math.PI*2.7);
+    const env = 0.7 + 0.3 * Math.sin(t * 0.9);
+    return a * env + 0.1 * (Math.random() - 0.5);
+  }
+  if (state.rhythm === 'Asystole') {
+    return 0.02 * (Math.random() - 0.5);
+  }
+  scheduleBeats(t);
+  let v = 0;
+  for (const b of beatSchedule.beats) {
+    const dt = t - b.t;
+    if (dt < -0.4 || dt > 0.55) continue;
+    v += beatContribution(dt, b, lead);
+  }
+
+  // AFib fibrillation baseline (lead-dependent)
+  if (state.rhythm === 'AFib' && (lead === 'II' || lead === 'V1' || lead === 'III' || lead === 'aVF')) {
+    v += 0.05 * Math.sin(t * 2*Math.PI * 6) + 0.04 * Math.sin(t * 2*Math.PI * 9.3);
+    v += 0.03 * (Math.random() - 0.5);
+  }
+  // AFlutter sawtooth
+  if (state.rhythm === 'AFlutter' && (lead === 'II' || lead === 'III' || lead === 'aVF')) {
+    const f = 5; // 300 bpm = 5 Hz
+    const tri = 2 * Math.abs(((t * f) % 1) - 0.5) - 0.5;
+    v += 0.18 * (lead === 'aVR' ? 1 : -1) * tri;
+  }
+  // CPR artifact
+  if (state.cpr) {
+    v += 0.5 * Math.sin(t * 2*Math.PI * 1.8);
+  }
+  // Independent P (3rd degree AVB)
+  if (state.rhythm === 'AVB3' && (lead === 'II' || lead === 'V1')) {
+    const pRate = 75 / 60;
+    v += 0.12 * (LEAD_FACTORS[lead].P || 0) * Math.exp(-Math.pow((t * pRate) % 1 - 0.5, 2) / (2 * 0.02));
+  }
+  // Baseline noise
+  v += 0.012 * (Math.random() - 0.5);
+  return v;
+}
+
+// =================== Pleth waveform ===================
+function plethValueAt(t) {
+  if (state.pulseless || state.rhythm === 'VF' || state.rhythm === 'Asystole' || state.rhythm === 'PEA') return 0;
+  scheduleBeats(t);
+  let v = 0;
+  for (const b of beatSchedule.beats) {
+    if (b.dropped || b.skipP === undefined && false) continue;
+    const dt = t - b.t - 0.22; // PTT
+    if (dt < 0 || dt > 0.9) continue;
+    // Damped sinusoid with dicrotic notch
+    const rrEst = b.rr || 0.8;
+    const cycle = Math.max(0.3, Math.min(1.2, rrEst));
+    const x = dt / cycle;
+    if (x > 1) continue;
+    const primary = Math.exp(-x * 2.2) * Math.sin(x * Math.PI * 1.0);
+    const dicrotic = 0.35 * Math.exp(-(x - 0.35) * 5) * Math.sin((x - 0.35) * Math.PI * 1.8);
+    v += primary + (dicrotic > 0 ? dicrotic : 0);
+  }
+  // Mild low SpO2 dampening
+  const piEff = state.vitals.pi || 2;
+  v *= Math.min(1.5, piEff / 2);
+  return v;
+}
+
+// =================== Capnography ===================
+function co2ValueAt(t) {
+  if (state.rhythm === 'Asystole' || (state.pulseless && !state.cpr)) {
+    // arrest: EtCO2 drops
+    return 0;
+  }
+  const rr = Math.max(4, state.vitals.rr || 12);
+  const etco2 = Math.max(0, state.vitals.etco2 || 35);
+  const cycle = 60 / rr;
+  const phase = ((t % cycle) + cycle) % cycle / cycle; // 0..1
+  // Phase I (0-0.42): baseline 0 (inspiration / pre-exhalation)
+  // Phase II (0.42-0.50): rapid up-stroke
+  // Phase III (0.50-0.95): plateau (mild upslope)
+  // Phase IV: rapid downstroke
+  let v;
+  if (phase < 0.42) v = 0;
+  else if (phase < 0.50) v = etco2 * ((phase - 0.42) / 0.08);
+  else if (phase < 0.95) v = etco2 * (0.95 + (phase - 0.50) * 0.10);
+  else v = etco2 * Math.max(0, 1 - (phase - 0.95) / 0.05);
+  return v;
+}
+
+// =================== Render engine ===================
+function setupCanvas(canvas) {
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+class Waveform {
+  constructor({ canvas, color, secondsPerSweep, range, getValue, gridColor }) {
+    this.canvas = canvas;
+    const setup = setupCanvas(canvas);
+    this.ctx = setup.ctx;
+    this.w = setup.w;
+    this.h = setup.h;
+    this.color = color;
+    this.gridColor = gridColor || 'rgba(255,255,255,0.04)';
+    this.secondsPerSweep = secondsPerSweep;
+    this.pps = this.w / secondsPerSweep;
+    this.range = range; // [min, max] in value units
+    this.getValue = getValue;
+    this.cursor = 0;
+    this.prevX = -1;
+    this.prevY = this.h / 2;
+    this.simTime = 0;
+    // initial fill
+    this.ctx.fillStyle = '#000';
+    this.ctx.fillRect(0, 0, this.w, this.h);
+    this.drawGrid();
+  }
+  drawGrid() {
+    const ctx = this.ctx;
+    ctx.strokeStyle = this.gridColor;
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < this.w; x += 25) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, this.h); ctx.stroke();
+    }
+    for (let y = 0; y < this.h; y += 20) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(this.w, y); ctx.stroke();
+    }
+  }
+  resize() {
+    const setup = setupCanvas(this.canvas);
+    this.ctx = setup.ctx;
+    this.w = setup.w;
+    this.h = setup.h;
+    this.pps = this.w / this.secondsPerSweep;
+    this.cursor = 0;
+    this.prevX = -1;
+    this.ctx.fillStyle = '#000';
+    this.ctx.fillRect(0, 0, this.w, this.h);
+    this.drawGrid();
+  }
+  valueToY(v) {
+    const [lo, hi] = this.range;
+    const t = (v - lo) / (hi - lo);
+    return this.h - t * this.h;
+  }
+  step(samplesPerFrame) {
+    const ctx = this.ctx;
+    const w = this.w, h = this.h;
+    const eraseGap = 18;
+    for (let i = 0; i < samplesPerFrame; i++) {
+      this.simTime += 1 / this.pps;
+      const v = this.getValue(this.simTime);
+      const x = this.cursor;
+      const y = this.valueToY(v);
+
+      // Erase ahead band
+      const ex = (x + 2) % w;
+      ctx.fillStyle = '#000';
+      if (ex + eraseGap <= w) {
+        ctx.fillRect(ex, 0, eraseGap, h);
+      } else {
+        ctx.fillRect(ex, 0, w - ex, h);
+        ctx.fillRect(0, 0, (ex + eraseGap) - w, h);
+      }
+      // Light grid in erased band
+      ctx.strokeStyle = this.gridColor;
+      ctx.lineWidth = 0.5;
+      // (skip grid redraw for perf)
+
+      // Draw line
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = 1.6;
+      ctx.lineCap = 'round';
+      if (this.prevX >= 0 && Math.abs(x - this.prevX) <= 1) {
+        ctx.beginPath();
+        ctx.moveTo(this.prevX + 0.5, this.prevY);
+        ctx.lineTo(x + 0.5, y);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(x, y - 1, 2, 2);
+      }
+      this.prevX = x;
+      this.prevY = y;
+      this.cursor = (this.cursor + 1) % w;
+      if (this.cursor === 0) {
+        this.prevX = -1; // break line on wrap
+      }
+    }
+  }
+}
+
+let waveforms = [];
+
+function buildWaveforms() {
+  const SWEEP_SECONDS = 6;
+  waveforms = [
+    new Waveform({
+      canvas: document.getElementById('cv-ecg'),
+      color: '#39ff39',
+      secondsPerSweep: SWEEP_SECONDS,
+      range: [-1.6, 2.2],
+      getValue: (t) => ecgValueAt(t, 'II'),
+    }),
+    new Waveform({
+      canvas: document.getElementById('cv-spo2'),
+      color: '#44eeee',
+      secondsPerSweep: SWEEP_SECONDS,
+      range: [-0.2, 1.4],
+      getValue: (t) => plethValueAt(t),
+    }),
+    new Waveform({
+      canvas: document.getElementById('cv-co2'),
+      color: '#ffcc44',
+      secondsPerSweep: SWEEP_SECONDS,
+      range: [-2, 60],
+      getValue: (t) => co2ValueAt(t),
+    }),
+  ];
+}
+
+let lastFrame = 0;
+function tick(now) {
+  const dt = lastFrame ? (now - lastFrame) / 1000 : 0;
+  lastFrame = now;
+  for (const wf of waveforms) {
+    const samples = Math.min(20, Math.max(1, Math.round(dt * wf.pps)));
+    wf.step(samples);
+  }
+  requestAnimationFrame(tick);
+}
+
+// =================== Numeric & UI sync ===================
+function updateNumerics() {
+  document.getElementById('v-hr').textContent = state.pulseless ? '--' : Math.round(state.vitals.hr);
+  document.getElementById('v-rhythm').textContent = humanRhythm(state.rhythm) + (state.ectopy && state.ectopy !== 'none' ? ' · ' + state.ectopy : '');
+  document.getElementById('v-spo2').textContent = state.pulseless ? '--' : Math.round(state.vitals.spo2);
+  document.getElementById('v-pi').textContent = (state.vitals.pi || 0).toFixed(1);
+  document.getElementById('v-rr').textContent = Math.round(state.vitals.rr);
+  document.getElementById('v-etco2').textContent = state.pulseless && !state.cpr ? '--' : Math.round(state.vitals.etco2);
+  document.getElementById('v-sbp').textContent = state.pulseless ? '--' : Math.round(state.vitals.sbp);
+  document.getElementById('v-dbp').textContent = state.pulseless ? '--' : Math.round(state.vitals.dbp);
+  document.getElementById('v-map').textContent = state.pulseless ? '--' : Math.round(state.vitals.map || ((state.vitals.sbp + 2*state.vitals.dbp)/3));
+  document.getElementById('v-temp').textContent = (state.vitals.temp ?? 36.7).toFixed(1);
+  document.getElementById('v-tempsite').textContent = state.vitals.tempSite || '耳溫';
+  document.getElementById('hdr-patient').textContent =
+    `${state.patient.name || '--'}  ${state.patient.age||'--'}${state.patient.sex==='F'?'♀':'♂'} ${state.patient.weight||'--'}kg`;
+
+  // Alarms
+  const hrBox = document.querySelector('.numeric-box.green');
+  hrBox.classList.toggle('alarm-high', !state.pulseless && (state.vitals.hr < 40 || state.vitals.hr > 140));
+  const spo2Box = document.querySelector('.numeric-box.cyan');
+  spo2Box.classList.toggle('alarm-high', !state.pulseless && state.vitals.spo2 < 90);
+  const co2Box = document.querySelector('.numeric-box.yellow');
+  co2Box.classList.toggle('alarm-high', !state.pulseless && (state.vitals.etco2 < 25 || state.vitals.etco2 > 50));
+
+  document.getElementById('cpr-indicator').classList.toggle('active', !!state.cpr);
+}
+
+function humanRhythm(r) {
+  return ({
+    'NSR':'NSR','STach':'Sinus Tach','SBrady':'Sinus Brady',
+    'AFib':'A-Fib','AFlutter':'A-Flutter','SVT':'SVT',
+    'VT':'V-Tach','pVT':'Poly-VT','VF':'V-Fib','Asystole':'Asystole','PEA':'PEA',
+    'AVB1':'1° AVB','AVB2-I':'2° AVB I','AVB2-II':'2° AVB II','AVB3':'3° AVB','Paced':'Paced',
+  }[r] || r);
+}
+
+// =================== Clock ===================
+function tickClock() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  document.getElementById('hdr-clock').textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+setInterval(tickClock, 1000); tickClock();
+
+// =================== Right info panel ===================
+function renderPanel() {
+  const p = document.getElementById('info-panel');
+  const mode = state.panel?.mode || 'blank';
+  p.className = 'info-panel mode-' + mode;
+  switch (mode) {
+    case 'blank':
+      p.innerHTML = '';
+      break;
+    case 'patient':
+      p.innerHTML = patientPanelHtml();
+      break;
+    case 'labs':
+      p.innerHTML = labsPanelHtml();
+      break;
+    case 'imaging':
+      p.innerHTML = imagingPanelHtml();
+      break;
+    case 'notes':
+      p.innerHTML = `<div class="panel-header">指導員提示</div><div class="notes-content">${escapeHtml(state.notes || '')}</div>`;
+      break;
+    case 'meds':
+      p.innerHTML = medsPanelHtml();
+      break;
+    case '12lead':
+      p.innerHTML = twelveLeadHtml();
+      setupTwelveLead();
+      break;
+    case 'custom':
+      p.innerHTML = `<div class="panel-header">資料</div><div class="custom-wrap">${state.customHtml || ''}</div>`;
+      break;
+    case 'iframe':
+      p.innerHTML = `<div class="panel-header">外部資料</div><div class="iframe-wrap"><iframe src="${escapeAttr(state.iframeUrl || 'about:blank')}" sandbox="allow-scripts allow-same-origin"></iframe></div>`;
+      break;
+  }
+}
+
+function patientPanelHtml() {
+  const pt = state.patient || {};
+  return `<div class="panel-header">病人資料</div>
+    <div class="patient-grid">
+      <div class="patient-field"><div class="label">姓名</div><div class="value">${escapeHtml(pt.name||'')}</div></div>
+      <div class="patient-field"><div class="label">年齡 / 性別</div><div class="value">${pt.age||'--'} 歲 / ${pt.sex==='F'?'女':(pt.sex==='M'?'男':'--')}</div></div>
+      <div class="patient-field"><div class="label">體重</div><div class="value">${pt.weight||'--'} kg</div></div>
+      <div class="patient-field"><div class="label">過敏</div><div class="value">${escapeHtml(pt.allergy||'NKDA')}</div></div>
+      <div class="patient-field wide"><div class="label">主訴</div><div class="value">${escapeHtml(pt.cc||'')}</div></div>
+      <div class="patient-field wide"><div class="label">過去病史</div><div class="value">${escapeHtml(pt.pmh||'')}</div></div>
+      <div class="patient-field wide"><div class="label">用藥</div><div class="value">${escapeHtml(pt.meds||'')}</div></div>
+    </div>`;
+}
+
+function labsPanelHtml() {
+  const labs = state.labs || defaultLabs();
+  const groups = labs.groups || [];
+  let html = `<div class="panel-header">實驗室報告 ${labs.timeLabel ? '· ' + escapeHtml(labs.timeLabel) : ''}</div><div class="labs-grid">`;
+  for (const g of groups) {
+    html += `<div class="lab-section">${escapeHtml(g.name)}</div>`;
+    for (const it of g.items) {
+      const flag = it.flag || 'normal';
+      html += `<div class="lab-row ${flag}">
+        <span class="lab-name">${escapeHtml(it.name)}</span>
+        <span class="lab-value ${flag}">${escapeHtml(String(it.value))}</span>
+        <span class="lab-unit">${escapeHtml(it.unit || '')}</span>
+      </div>`;
+    }
+  }
+  html += `</div>`;
+  return html;
+}
+
+function defaultLabs() {
+  return { timeLabel: '', groups: [] };
+}
+
+function imagingPanelHtml() {
+  const url = state.imagingUrl || '';
+  const cap = state.imagingCaption || '';
+  if (!url) return `<div class="panel-header">影像</div><div style="padding:30px;color:#888">(尚未指派影像)</div>`;
+  const isVideo = /\.(mp4|webm|mov)$/i.test(url);
+  return `<div class="panel-header">影像</div>
+    <div class="imaging-wrap">
+      ${isVideo ? `<video src="${escapeAttr(url)}" autoplay loop muted playsinline></video>` : `<img src="${escapeAttr(url)}" alt="">`}
+      ${cap ? `<div class="imaging-caption">${escapeHtml(cap)}</div>` : ''}
+    </div>`;
+}
+
+function medsPanelHtml() {
+  const meds = state.medsList || [];
+  if (!meds.length) return `<div class="panel-header">給藥紀錄</div><div style="padding:30px;color:#888">(尚未給藥)</div>`;
+  return `<div class="panel-header">給藥紀錄</div><ul class="meds-list">${
+    meds.map(m => `<li><span class="med-name">${escapeHtml(m.name)}</span><span class="med-dose">${escapeHtml(m.dose||'')}</span><span class="med-time">${escapeHtml(m.time||'')}</span></li>`).join('')
+  }</ul>`;
+}
+
+function twelveLeadHtml() {
+  const leads = ['I','aVR','V1','V4','II','aVL','V2','V5','III','aVF','V3','V6'];
+  const cells = leads.map(L => `<div class="ekg12-cell"><div class="lead-name">${L}</div><canvas data-lead="${L}"></canvas></div>`).join('');
+  return `<div class="panel-header">12 導程心電圖${state.twelveLeadFreeze ? ' · ' + escapeHtml(state.twelveLeadFreeze) : ''}</div>
+    <div class="ekg12-wrap">
+      <div class="ekg12-meta"><span>25 mm/s · 10 mm/mV</span><span>${escapeHtml(state.patient.name||'')} · HR ${Math.round(state.vitals.hr)}</span></div>
+      <div class="ekg12-grid">${cells}</div>
+      <div class="ekg12-rhythm"><div class="lead-name" style="color:#000;font-size:11px;position:absolute;top:2px;left:6px;">II (10 sec)</div><canvas data-lead="II" data-strip="1"></canvas></div>
+    </div>`;
+}
+
+function setupTwelveLead() {
+  const canvases = document.querySelectorAll('.ekg12-cell canvas, .ekg12-rhythm canvas');
+  // For 12-lead, we render a "frozen snapshot" — sample a fixed time window and draw once.
+  const baseTime = (performance.now() / 1000);
+  for (const cv of canvases) {
+    const lead = cv.dataset.lead;
+    const isStrip = cv.dataset.strip === '1';
+    const duration = isStrip ? 10 : 2.5;
+    drawEkgStrip(cv, lead, baseTime, duration);
+  }
+}
+
+function drawEkgStrip(canvas, lead, startTime, duration) {
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = rect.width, h = rect.height;
+  // White background with red grid
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, w, h);
+  // ECG grid: 1mm small grid, 5mm big grid
+  const mm = w / (duration * 25); // 25mm/s
+  ctx.strokeStyle = '#fbb';
+  ctx.lineWidth = 0.4;
+  for (let x = 0; x <= w; x += mm) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = 0; y <= h; y += mm) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+  ctx.strokeStyle = '#f66';
+  ctx.lineWidth = 0.8;
+  for (let x = 0; x <= w; x += mm * 5) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = 0; y <= h; y += mm * 5) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+  // Waveform
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 1.4;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  const samples = Math.floor(w);
+  const baseline = h / 2;
+  const mvScale = mm * 10; // 1 mV = 10 mm
+  for (let i = 0; i < samples; i++) {
+    const t = startTime + (i / samples) * duration;
+    const v = ecgValueAt(t, lead);
+    const y = baseline - v * mvScale * 0.35;
+    if (i === 0) ctx.moveTo(i, y); else ctx.lineTo(i, y);
+  }
+  ctx.stroke();
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+// =================== Init waveforms ===================
+buildWaveforms();
+requestAnimationFrame(tick);
+updateNumerics();
+renderPanel();
+
+window.addEventListener('resize', () => {
+  for (const wf of waveforms) wf.resize();
+});
+
+// =================== MQTT ===================
+const topicState  = `emtp-sim/${sessionId}/state`;
+const topicAction = `emtp-sim/${sessionId}/action`;
+const topicHello  = `emtp-sim/${sessionId}/hello`;
+
+const client = mqtt.connect(broker, {
+  clientId: 'display-' + Math.random().toString(36).slice(2, 10),
+  reconnectPeriod: 2000,
+  clean: true,
+});
+
+const connbar = document.getElementById('connbar');
+const connStatus = document.getElementById('conn-status');
+
+client.on('connect', () => {
+  connbar.className = 'connected';
+  connStatus.textContent = '已連線';
+  client.subscribe([topicState, topicAction], { qos: 0 });
+  client.publish(topicHello, JSON.stringify({ role: 'display', t: Date.now() }));
+  setTimeout(() => { connbar.style.display = 'none'; }, 2000);
+});
+client.on('reconnect', () => {
+  connbar.style.display = '';
+  connbar.className = '';
+  connStatus.textContent = '重新連線中…';
+});
+client.on('error', (e) => {
+  connbar.style.display = '';
+  connbar.className = 'error';
+  connStatus.textContent = '錯誤: ' + e.message;
+});
+client.on('close', () => {
+  connbar.style.display = '';
+  connbar.className = 'error';
+  connStatus.textContent = '已斷線';
+});
+client.on('message', (topic, buf) => {
+  let msg;
+  try { msg = JSON.parse(buf.toString()); } catch { return; }
+  if (topic === topicState) {
+    state = Object.assign(state, msg);
+    updateNumerics();
+    renderPanel();
+    // Shock detection
+    if ((state.shockCounter || 0) > lastShockCount) {
+      lastShockCount = state.shockCounter;
+      triggerShock();
+    }
+  } else if (topic === topicAction) {
+    if (msg.type === 'shock') triggerShock(msg.joules);
+    if (msg.type === 'flash') triggerShock(0, msg.text);
+  }
+});
+
+function triggerShock(joules, label) {
+  const flash = document.getElementById('shock-flash');
+  const lbl = document.getElementById('shock-label');
+  flash.classList.remove('active'); void flash.offsetWidth; flash.classList.add('active');
+  lbl.textContent = label || (joules ? `${joules} J · SHOCK DELIVERED` : 'SHOCK DELIVERED');
+  lbl.classList.remove('active'); void lbl.offsetWidth; lbl.classList.add('active');
+}
+
+// Auto-refresh 12-lead every 5s when in that mode (so it doesn't look frozen)
+setInterval(() => {
+  if (state.panel?.mode === '12lead' && !state.twelveLeadFreeze) {
+    setupTwelveLead();
+  }
+}, 5000);
+
+</script>
+</body>
+</html>
