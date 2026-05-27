@@ -878,6 +878,16 @@
       </div>
 
       <div class="section">
+        <h3>呼吸音 (大銀幕播放)</h3>
+        <div class="grid-btns cols-3" id="breath-btns">
+          <button data-bs="" class="active">關閉</button>
+          <button data-bs="wheeze">Wheezing 哮鳴 (呼氣)</button>
+          <button data-bs="stridor">Stridor 喉喘 (吸氣)</button>
+        </div>
+        <div class="small-hint">大銀幕需先按右上「開啟監視器聲音」才會發音；節律會跟 RR 同步</div>
+      </div>
+
+      <div class="section">
         <h3>重置</h3>
         <button class="case-action-btn secondary" onclick="resetCase()">清空 (回到空白)</button>
       </div>
@@ -950,6 +960,7 @@ let state = {
   patientShow: { weight: false, allergy: false, pmh: false, meds: false },
   segmentImage: null,
   segmentLabel: '',
+  breathSound: null,
 };
 
 // =================== MQTT ===================
@@ -1190,6 +1201,16 @@ document.querySelectorAll('#panel-btns button').forEach(b => {
     document.querySelectorAll('#panel-btns button').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     state.panel = { mode: b.dataset.m };
+    publishStateDebounced();
+  });
+});
+
+// =================== Breath sound ===================
+document.querySelectorAll('#breath-btns button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#breath-btns button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.breathSound = b.dataset.bs || null;
     publishStateDebounced();
   });
 });
@@ -1706,6 +1727,7 @@ function resetCase() {
   state.show = { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true };
   state.segmentImage = null;
   state.segmentLabel = '';
+  state.breathSound = null;
   rampTarget = null;
   syncUIFromState();
   publishState(true);
@@ -1732,6 +1754,7 @@ function syncUIFromState() {
   document.querySelectorAll('#stemi-btns button').forEach(x => x.classList.toggle('active', (x.dataset.s || '') === (state.stemiRegion || '')));
   document.getElementById('r-st').value = state.stOffset; document.getElementById('v-st').textContent = state.stOffset.toFixed(2);
   document.querySelectorAll('#panel-btns button').forEach(x => x.classList.toggle('active', x.dataset.m === state.panel?.mode));
+  document.querySelectorAll('#breath-btns button').forEach(x => x.classList.toggle('active', (x.dataset.bs || '') === (state.breathSound || '')));
 
   document.getElementById('pt-name').value = state.patient.name || '';
   document.getElementById('pt-age').value = state.patient.age || '';

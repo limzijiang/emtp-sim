@@ -546,6 +546,7 @@ let state = {
   patientShow: { weight: false, allergy: false, pmh: false, meds: false },
   segmentImage: null,
   segmentLabel: '',
+  breathSound: null,
 };
 let lastShockCount = 0;
 
@@ -992,6 +993,7 @@ function tick(now) {
 class MonitorAudio {
   constructor() {
     this.ctx = null;
+    this.master = null;
     this.muted = false;
     this.qrsEnabled = true;
     this.nextAlarmTime = 0;
@@ -1002,7 +1004,14 @@ class MonitorAudio {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     this.ctx = new AC();
+    this.master = this.ctx.createGain();
+    this.master.gain.value = this.muted ? 0 : 1;
+    this.master.connect(this.ctx.destination);
     if (this.ctx.state === 'suspended') this.ctx.resume();
+  }
+  setMuted(m) {
+    this.muted = m;
+    if (this.master) this.master.gain.value = m ? 0 : 1;
   }
   beep(freq, duration, volume = 0.1, waveType = 'sine') {
     if (!this.ctx || this.muted) return;
@@ -1016,7 +1025,7 @@ class MonitorAudio {
     gain.gain.setValueAtTime(volume, t + Math.max(0.005, duration - 0.03));
     gain.gain.exponentialRampToValueAtTime(0.0008, t + duration);
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.master);
     osc.start(t);
     osc.stop(t + duration + 0.04);
   }
@@ -1049,6 +1058,97 @@ class MonitorAudio {
 }
 
 const monitorAudio = new MonitorAudio();
+
+// =================== Breath sound synthesis (wheeze / stridor) ===================
+class BreathSound {
+  constructor(audio) {
+    this.audio = audio;
+    this.active = null;       // null | 'wheeze' | 'stridor'
+    this.noiseSource = null;
+    this.filter = null;
+    this.gain = null;
+    this.nextCycle = null;
+  }
+  start(type) {
+    if (!this.audio.ctx) return;
+    if (this.active === type) return;
+    this.stop();
+    this.active = type;
+    const ctx = this.audio.ctx;
+    // White-noise buffer source (looped)
+    const bufLen = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * 0.6;
+    this.noiseSource = ctx.createBufferSource();
+    this.noiseSource.buffer = buf;
+    this.noiseSource.loop = true;
+    // Bandpass filter
+    this.filter = ctx.createBiquadFilter();
+    this.filter.type = 'bandpass';
+    if (type === 'wheeze') {
+      this.filter.frequency.value = 650;
+      this.filter.Q.value = 9;       // narrow band → musical whistle
+    } else { // stridor
+      this.filter.frequency.value = 340;
+      this.filter.Q.value = 4.5;     // wider → harsh crowing
+    }
+    this.gain = ctx.createGain();
+    this.gain.gain.value = 0;
+    this.noiseSource.connect(this.filter);
+    this.filter.connect(this.gain);
+    this.gain.connect(this.audio.master);
+    this.noiseSource.start();
+    this.scheduleCycle();
+  }
+  scheduleCycle() {
+    if (!this.active || !this.gain) return;
+    const ctx = this.audio.ctx;
+    const t = ctx.currentTime;
+    const rr = Math.max(8, Math.min(60, state.vitals.rr || 16));
+    const cycle = 60 / rr;
+    const g = this.gain.gain;
+    g.cancelScheduledValues(t);
+    if (this.active === 'wheeze') {
+      // Expiratory wheeze: silent during inspiration (0 - 0.40 cycle), louder during expiration (0.45 - 0.95)
+      g.setValueAtTime(0.005, t);
+      g.linearRampToValueAtTime(0.005, t + 0.40 * cycle);
+      g.linearRampToValueAtTime(0.20, t + 0.55 * cycle);
+      g.setValueAtTime(0.20, t + 0.85 * cycle);
+      g.linearRampToValueAtTime(0.005, t + 0.97 * cycle);
+    } else if (this.active === 'stridor') {
+      // Inspiratory stridor: loud during inspiration (0.05 - 0.38), softer/silent during expiration
+      g.setValueAtTime(0.005, t);
+      g.linearRampToValueAtTime(0.24, t + 0.10 * cycle);
+      g.setValueAtTime(0.24, t + 0.32 * cycle);
+      g.linearRampToValueAtTime(0.005, t + 0.40 * cycle);
+    }
+    this.nextCycle = setTimeout(() => this.scheduleCycle(), cycle * 1000);
+  }
+  stop() {
+    if (this.nextCycle) { clearTimeout(this.nextCycle); this.nextCycle = null; }
+    if (this.gain) {
+      try { this.gain.gain.cancelScheduledValues(this.audio.ctx.currentTime); this.gain.gain.value = 0; } catch {}
+    }
+    if (this.noiseSource) {
+      try { this.noiseSource.stop(); } catch {}
+      this.noiseSource = null;
+    }
+    if (this.filter) { try { this.filter.disconnect(); } catch {} this.filter = null; }
+    if (this.gain) { try { this.gain.disconnect(); } catch {} this.gain = null; }
+    this.active = null;
+  }
+}
+
+const breathSound = new BreathSound(monitorAudio);
+
+function syncBreathSound() {
+  if (!monitorAudio.ctx) return;
+  const want = state.breathSound || null;
+  if (breathSound.active === want) return;
+  if (want === 'wheeze' || want === 'stridor') breathSound.start(want);
+  else breathSound.stop();
+}
 
 function computeAlarmLevel() {
   const v = state.vitals || {};
@@ -1100,16 +1200,16 @@ let soundEnabled = false;
 soundBtn.addEventListener('click', () => {
   if (!soundEnabled) {
     monitorAudio.enable();
-    monitorAudio.muted = false;
+    monitorAudio.setMuted(false);
     soundEnabled = true;
     lastQrsBeatT = -1;
     soundBtn.classList.add('enabled');
     soundBtn.textContent = '🔊 監視器聲音 ON';
-    // small beep to confirm
     setTimeout(() => monitorAudio.beep(880, 0.1, 0.15, 'sine'), 60);
+    syncBreathSound();
     return;
   }
-  monitorAudio.muted = !monitorAudio.muted;
+  monitorAudio.setMuted(!monitorAudio.muted);
   soundBtn.classList.toggle('muted', monitorAudio.muted);
   soundBtn.classList.toggle('enabled', !monitorAudio.muted);
   soundBtn.textContent = monitorAudio.muted ? '🔇 靜音 (點擊解除)' : '🔊 監視器聲音 ON';
@@ -1444,6 +1544,7 @@ function connectMqtt() {
       state = Object.assign(state, msg);
       updateNumerics();
       renderPanel();
+      syncBreathSound();
       if ((state.shockCounter || 0) > lastShockCount) {
         lastShockCount = state.shockCounter;
         triggerShock();
