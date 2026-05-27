@@ -716,35 +716,76 @@ const topicAction = `emtp-sim/${sessionId}/action`;
 const topicHello  = `emtp-sim/${sessionId}/hello`;
 
 const connStatus = document.getElementById('conn-status');
-const client = mqtt.connect(broker, {
-  clientId: 'control-' + Math.random().toString(36).slice(2, 10),
-  reconnectPeriod: 2000,
-  clean: true,
-});
-client.on('connect', () => {
-  connStatus.className = 'status connected';
-  connStatus.textContent = '已連線';
-  client.subscribe([topicState, topicHello], { qos: 0 });
-  publishState(true);
-});
-client.on('reconnect', () => { connStatus.className = 'status'; connStatus.textContent = '重新連線中…'; });
-client.on('error', (e) => { connStatus.className = 'status error'; connStatus.textContent = '錯誤'; });
-client.on('close', () => { connStatus.className = 'status error'; connStatus.textContent = '已斷線'; });
-client.on('message', (topic, buf) => {
-  if (topic === topicHello) {
-    try {
-      const m = JSON.parse(buf.toString());
-      if (m.role === 'display') publishState(true); // resend on display join
-    } catch {}
+
+const BROKERS = params.get('broker') ? [params.get('broker')] : [
+  'wss://broker.emqx.io:8084/mqtt',
+  'wss://broker.hivemq.com:8884/mqtt',
+  'wss://test.mosquitto.org:8081/mqtt',
+];
+let brokerIdx = 0;
+let everConnected = false;
+let client = null;
+
+function connectMqtt() {
+  const url = BROKERS[brokerIdx];
+  const host = new URL(url).host;
+  connStatus.className = 'status';
+  connStatus.textContent = `連線 ${host}…`;
+
+  if (client) { try { client.end(true); } catch {} }
+  client = mqtt.connect(url, {
+    clientId: 'control-' + Math.random().toString(36).slice(2, 10),
+    reconnectPeriod: everConnected ? 2000 : 0,
+    connectTimeout: 7000,
+    clean: true,
+  });
+
+  client.on('connect', () => {
+    everConnected = true;
+    connStatus.className = 'status connected';
+    connStatus.textContent = `已連線 (${host})`;
+    client.subscribe([topicState, topicHello], { qos: 0 });
+    publishState(true);
+  });
+  client.on('reconnect', () => { connStatus.className = 'status'; connStatus.textContent = '重新連線中…'; });
+  client.on('error', (e) => {
+    if (!everConnected) { tryNextBroker(); return; }
+    connStatus.className = 'status error'; connStatus.textContent = '錯誤';
+  });
+  client.on('close', () => {
+    if (!everConnected) { tryNextBroker(); return; }
+    connStatus.className = 'status error'; connStatus.textContent = '已斷線';
+  });
+  client.on('message', (topic, buf) => {
+    if (topic === topicHello) {
+      try {
+        const m = JSON.parse(buf.toString());
+        if (m.role === 'display') publishState(true);
+      } catch {}
+    }
+  });
+}
+
+function tryNextBroker() {
+  if (client) { try { client.end(true); } catch {} }
+  brokerIdx = (brokerIdx + 1) % BROKERS.length;
+  if (brokerIdx === 0 && BROKERS.length > 1) {
+    connStatus.className = 'status error';
+    connStatus.textContent = '所有 broker 失敗，5 秒後重試';
+    setTimeout(connectMqtt, 5000);
+  } else {
+    setTimeout(connectMqtt, 600);
   }
-});
+}
+
+connectMqtt();
 
 let publishTimer = null;
 let rampTarget = null;
 let rampInterval = null;
 
 function publishState(retain) {
-  if (!client.connected) return;
+  if (!client || !client.connected) return;
   client.publish(topicState, JSON.stringify(state), { retain: !!retain, qos: 0 });
 }
 function publishStateDebounced() {
@@ -752,7 +793,7 @@ function publishStateDebounced() {
   publishTimer = setTimeout(() => publishState(true), 60);
 }
 function publishAction(action) {
-  if (!client.connected) return;
+  if (!client || !client.connected) return;
   client.publish(topicAction, JSON.stringify(action), { retain: false, qos: 0 });
 }
 

@@ -1187,54 +1187,90 @@ const topicState  = `emtp-sim/${sessionId}/state`;
 const topicAction = `emtp-sim/${sessionId}/action`;
 const topicHello  = `emtp-sim/${sessionId}/hello`;
 
-const client = mqtt.connect(broker, {
-  clientId: 'display-' + Math.random().toString(36).slice(2, 10),
-  reconnectPeriod: 2000,
-  clean: true,
-});
+const BROKERS = params.get('broker') ? [params.get('broker')] : [
+  'wss://broker.emqx.io:8084/mqtt',
+  'wss://broker.hivemq.com:8884/mqtt',
+  'wss://test.mosquitto.org:8081/mqtt',
+];
+let brokerIdx = 0;
+let everConnected = false;
+let client = null;
 
 const connbar = document.getElementById('connbar');
 const connStatus = document.getElementById('conn-status');
 
-client.on('connect', () => {
-  connbar.className = 'connected';
-  connStatus.textContent = '已連線';
-  client.subscribe([topicState, topicAction], { qos: 0 });
-  client.publish(topicHello, JSON.stringify({ role: 'display', t: Date.now() }));
-  setTimeout(() => { connbar.style.display = 'none'; }, 2000);
-});
-client.on('reconnect', () => {
+function connectMqtt() {
+  const url = BROKERS[brokerIdx];
+  const host = new URL(url).host;
   connbar.style.display = '';
   connbar.className = '';
-  connStatus.textContent = '重新連線中…';
-});
-client.on('error', (e) => {
-  connbar.style.display = '';
-  connbar.className = 'error';
-  connStatus.textContent = '錯誤: ' + e.message;
-});
-client.on('close', () => {
-  connbar.style.display = '';
-  connbar.className = 'error';
-  connStatus.textContent = '已斷線';
-});
-client.on('message', (topic, buf) => {
-  let msg;
-  try { msg = JSON.parse(buf.toString()); } catch { return; }
-  if (topic === topicState) {
-    state = Object.assign(state, msg);
-    updateNumerics();
-    renderPanel();
-    // Shock detection
-    if ((state.shockCounter || 0) > lastShockCount) {
-      lastShockCount = state.shockCounter;
-      triggerShock();
+  connStatus.textContent = `連線 ${host}…`;
+
+  if (client) { try { client.end(true); } catch {} }
+  client = mqtt.connect(url, {
+    clientId: 'display-' + Math.random().toString(36).slice(2, 10),
+    reconnectPeriod: everConnected ? 2000 : 0,
+    connectTimeout: 7000,
+    clean: true,
+  });
+
+  client.on('connect', () => {
+    everConnected = true;
+    connbar.className = 'connected';
+    connStatus.textContent = `已連線 (${host})`;
+    client.subscribe([topicState, topicAction], { qos: 0 });
+    client.publish(topicHello, JSON.stringify({ role: 'display', t: Date.now() }));
+    setTimeout(() => { connbar.style.display = 'none'; }, 2000);
+  });
+  client.on('reconnect', () => {
+    connbar.style.display = '';
+    connbar.className = '';
+    connStatus.textContent = '重新連線中…';
+  });
+  client.on('error', (e) => {
+    if (!everConnected) { tryNextBroker(); return; }
+    connbar.style.display = '';
+    connbar.className = 'error';
+    connStatus.textContent = '錯誤: ' + (e?.message || 'unknown');
+  });
+  client.on('close', () => {
+    if (!everConnected) { tryNextBroker(); return; }
+    connbar.style.display = '';
+    connbar.className = 'error';
+    connStatus.textContent = '已斷線';
+  });
+  client.on('message', (topic, buf) => {
+    let msg;
+    try { msg = JSON.parse(buf.toString()); } catch { return; }
+    if (topic === topicState) {
+      state = Object.assign(state, msg);
+      updateNumerics();
+      renderPanel();
+      if ((state.shockCounter || 0) > lastShockCount) {
+        lastShockCount = state.shockCounter;
+        triggerShock();
+      }
+    } else if (topic === topicAction) {
+      if (msg.type === 'shock') triggerShock(msg.joules);
+      if (msg.type === 'flash') triggerShock(0, msg.text);
     }
-  } else if (topic === topicAction) {
-    if (msg.type === 'shock') triggerShock(msg.joules);
-    if (msg.type === 'flash') triggerShock(0, msg.text);
+  });
+}
+
+function tryNextBroker() {
+  if (client) { try { client.end(true); } catch {} }
+  brokerIdx = (brokerIdx + 1) % BROKERS.length;
+  if (brokerIdx === 0 && BROKERS.length > 1) {
+    connbar.style.display = '';
+    connbar.className = 'error';
+    connStatus.textContent = '所有 broker 失敗，5 秒後重試';
+    setTimeout(connectMqtt, 5000);
+  } else {
+    setTimeout(connectMqtt, 600);
   }
-});
+}
+
+connectMqtt();
 
 function triggerShock(joules, label) {
   const flash = document.getElementById('shock-flash');
