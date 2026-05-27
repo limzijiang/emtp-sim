@@ -523,6 +523,7 @@ let state = {
   shockCounter: 0,
   twelveLeadFreeze: null,
   show: { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true },
+  patientShow: { weight: false, allergy: false, pmh: false, meds: false },
 };
 let lastShockCount = 0;
 
@@ -1064,16 +1065,16 @@ function renderPanel() {
 
 function patientPanelHtml() {
   const pt = state.patient || {};
-  return `<div class="panel-header">病人資料</div>
-    <div class="patient-grid">
-      <div class="patient-field"><div class="label">姓名</div><div class="value">${escapeHtml(pt.name||'')}</div></div>
-      <div class="patient-field"><div class="label">年齡 / 性別</div><div class="value">${pt.age||'--'} 歲 / ${pt.sex==='F'?'女':(pt.sex==='M'?'男':'--')}</div></div>
-      <div class="patient-field"><div class="label">體重</div><div class="value">${pt.weight||'--'} kg</div></div>
-      <div class="patient-field"><div class="label">過敏</div><div class="value">${escapeHtml(pt.allergy||'NKDA')}</div></div>
-      <div class="patient-field wide"><div class="label">主訴</div><div class="value">${escapeHtml(pt.cc||'')}</div></div>
-      <div class="patient-field wide"><div class="label">過去病史</div><div class="value">${escapeHtml(pt.pmh||'')}</div></div>
-      <div class="patient-field wide"><div class="label">用藥</div><div class="value">${escapeHtml(pt.meds||'')}</div></div>
-    </div>`;
+  const ps = state.patientShow || { weight: false, allergy: false, pmh: false, meds: false };
+  const parts = [];
+  parts.push(`<div class="patient-field"><div class="label">姓名</div><div class="value">${escapeHtml(pt.name||'')}</div></div>`);
+  parts.push(`<div class="patient-field"><div class="label">年齡 / 性別</div><div class="value">${pt.age||'--'} 歲 / ${pt.sex==='F'?'女':(pt.sex==='M'?'男':'--')}</div></div>`);
+  if (ps.weight) parts.push(`<div class="patient-field"><div class="label">體重</div><div class="value">${pt.weight||'--'} kg</div></div>`);
+  if (ps.allergy) parts.push(`<div class="patient-field"><div class="label">過敏</div><div class="value">${escapeHtml(pt.allergy||'NKDA')}</div></div>`);
+  parts.push(`<div class="patient-field wide"><div class="label">主訴</div><div class="value">${escapeHtml(pt.cc||'')}</div></div>`);
+  if (ps.pmh) parts.push(`<div class="patient-field wide"><div class="label">過去病史</div><div class="value">${escapeHtml(pt.pmh||'')}</div></div>`);
+  if (ps.meds) parts.push(`<div class="patient-field wide"><div class="label">用藥</div><div class="value">${escapeHtml(pt.meds||'')}</div></div>`);
+  return `<div class="panel-header">病人資料</div><div class="patient-grid">${parts.join('')}</div>`;
 }
 
 function labsPanelHtml() {

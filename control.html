@@ -275,6 +275,39 @@
     border: 1px solid #2a2f38;
   }
 
+  .patient-field-wrap {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 10px;
+    align-items: start;
+    margin-bottom: 8px;
+  }
+  .patient-field-wrap > .switch {
+    margin-top: 6px;
+    width: 40px; height: 24px;
+  }
+  .patient-field-wrap > .switch::after { width: 20px; height: 20px; }
+  .patient-field-wrap > .switch.on::after { left: 18px; }
+  .patient-field-wrap .field { margin-bottom: 0; }
+  .patient-field-wrap .placeholder { width: 40px; height: 1px; }
+
+  .ask-toggle {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 10px 4px;
+    border-bottom: 1px dotted #2a2f38;
+    gap: 10px;
+  }
+  .ask-toggle:last-child { border: 0; }
+  .ask-toggle .ask-label { font-size: 14px; color: #c9d1d9; }
+  .ask-toggle .ask-preview {
+    font-size: 12px;
+    color: #6e7681;
+    margin-top: 2px;
+    font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  }
+
   .quick-actions {
     display: flex; gap: 6px;
     flex-wrap: wrap;
@@ -609,14 +642,41 @@
 
       <div class="section" id="sec-patient">
         <h3>病人資料</h3>
-        <div class="field"><label>姓名</label><input id="pt-name"></div>
-        <div class="field"><label>年齡</label><input type="number" id="pt-age"></div>
-        <div class="field"><label>性別</label><select id="pt-sex"><option value="M">男</option><option value="F">女</option></select></div>
-        <div class="field"><label>體重 (kg)</label><input type="number" id="pt-weight"></div>
-        <div class="field"><label>主訴</label><input id="pt-cc"></div>
-        <div class="field"><label>過去病史</label><textarea id="pt-pmh"></textarea></div>
-        <div class="field"><label>用藥</label><textarea id="pt-meds"></textarea></div>
-        <div class="field"><label>過敏</label><input id="pt-allergy"></div>
+        <div class="small-hint" style="margin-bottom:8px">左側開關控制是否在大銀幕顯示。未打開的欄位學員看不到，等他們問再開。</div>
+
+        <div class="patient-field-wrap">
+          <div class="placeholder"></div>
+          <div class="field"><label>姓名</label><input id="pt-name"></div>
+        </div>
+        <div class="patient-field-wrap">
+          <div class="placeholder"></div>
+          <div class="field"><label>年齡</label><input type="number" id="pt-age"></div>
+        </div>
+        <div class="patient-field-wrap">
+          <div class="placeholder"></div>
+          <div class="field"><label>性別</label><select id="pt-sex"><option value="M">男</option><option value="F">女</option></select></div>
+        </div>
+        <div class="patient-field-wrap">
+          <div class="placeholder"></div>
+          <div class="field"><label>主訴</label><input id="pt-cc"></div>
+        </div>
+
+        <div class="patient-field-wrap">
+          <div class="switch" data-pshow="weight" title="體重"></div>
+          <div class="field"><label>體重 (kg)</label><input type="number" id="pt-weight"></div>
+        </div>
+        <div class="patient-field-wrap">
+          <div class="switch" data-pshow="allergy" title="過敏"></div>
+          <div class="field"><label>過敏</label><input id="pt-allergy"></div>
+        </div>
+        <div class="patient-field-wrap">
+          <div class="switch" data-pshow="pmh" title="過去病史"></div>
+          <div class="field"><label>過去病史</label><textarea id="pt-pmh"></textarea></div>
+        </div>
+        <div class="patient-field-wrap">
+          <div class="switch" data-pshow="meds" title="用藥"></div>
+          <div class="field"><label>用藥</label><textarea id="pt-meds"></textarea></div>
+        </div>
       </div>
 
       <div class="section">
@@ -726,6 +786,27 @@
       </div>
 
       <div class="section">
+        <h3>學員問了 → 點開顯示</h3>
+        <div class="small-hint" style="margin-bottom:6px">大銀幕需處於「病人資料」面板才會顯示這些欄位</div>
+        <div class="ask-toggle">
+          <div><div class="ask-label">體重</div><div class="ask-preview" data-pf="weight"></div></div>
+          <div class="switch" data-pshow="weight"></div>
+        </div>
+        <div class="ask-toggle">
+          <div><div class="ask-label">過敏</div><div class="ask-preview" data-pf="allergy"></div></div>
+          <div class="switch" data-pshow="allergy"></div>
+        </div>
+        <div class="ask-toggle">
+          <div><div class="ask-label">過去病史</div><div class="ask-preview" data-pf="pmh"></div></div>
+          <div class="switch" data-pshow="pmh"></div>
+        </div>
+        <div class="ask-toggle">
+          <div><div class="ask-label">用藥</div><div class="ask-preview" data-pf="meds"></div></div>
+          <div class="switch" data-pshow="meds"></div>
+        </div>
+      </div>
+
+      <div class="section">
         <h3>vital sign 套組 · 依時序</h3>
         <div class="segment-card" onclick="loadSegment(0)">
           <div class="seg-title">① 到場：抽搐中</div>
@@ -824,6 +905,7 @@ let state = {
   medsList: [],
   shockCounter: 0,
   show: { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true },
+  patientShow: { weight: false, allergy: false, pmh: false, meds: false },
 };
 
 // =================== MQTT ===================
@@ -1034,6 +1116,29 @@ document.querySelectorAll('.switch[data-show]').forEach(sw => {
     publishStateDebounced();
   });
 });
+document.querySelectorAll('.switch[data-pshow]').forEach(sw => {
+  sw.addEventListener('click', () => {
+    const key = sw.dataset.pshow;
+    if (!state.patientShow) state.patientShow = { weight: false, allergy: false, pmh: false, meds: false };
+    state.patientShow[key] = !state.patientShow[key];
+    // sync all switches with the same data-pshow (toggles can appear in multiple tabs)
+    document.querySelectorAll(`.switch[data-pshow="${key}"]`).forEach(s =>
+      s.classList.toggle('on', !!state.patientShow[key])
+    );
+    publishStateDebounced();
+  });
+});
+
+function updatePatientPreviews() {
+  document.querySelectorAll('.ask-preview').forEach(el => {
+    const key = el.dataset.pf;
+    const val = state.patient?.[key];
+    let txt = val == null || val === '' ? '(無)' : String(val);
+    if (key === 'weight') txt = val ? `${val} kg` : '(無)';
+    if (txt.length > 40) txt = txt.slice(0, 38) + '…';
+    el.textContent = txt;
+  });
+}
 
 // =================== Panel mode ===================
 document.querySelectorAll('#panel-btns button').forEach(b => {
@@ -1335,6 +1440,7 @@ const CASE_SEIZURE = {
 
 function loadCasePatient() {
   state.patient = Object.assign({}, CASE_SEIZURE.patient);
+  state.patientShow = { weight: false, allergy: false, pmh: false, meds: false };
   state.panel = { mode: 'patient' };
   state.medsList = [];
   state.shockCounter = 0;
@@ -1364,6 +1470,7 @@ function loadSegment(idx) {
 function resetCase() {
   if (!confirm('清空所有狀態並回到空白？')) return;
   state.patient = { name: '', age: 0, sex: 'M', weight: 0, cc: '', pmh: '', allergy: 'NKDA', meds: '' };
+  state.patientShow = { weight: false, allergy: false, pmh: false, meds: false };
   state.vitals = { hr: 80, sbp: 120, dbp: 80, map: 93, spo2: 99, pi: 2.0, rr: 14, etco2: 38, temp: 36.7, tempSite: '耳溫' };
   state.rhythm = 'NSR';
   state.ectopy = 'none';
@@ -1425,6 +1532,11 @@ function syncUIFromState() {
   document.querySelectorAll('.switch[data-show]').forEach(sw => {
     sw.classList.toggle('on', !!state.show[sw.dataset.show]);
   });
+  if (!state.patientShow) state.patientShow = { weight: false, allergy: false, pmh: false, meds: false };
+  document.querySelectorAll('.switch[data-pshow]').forEach(sw => {
+    sw.classList.toggle('on', !!state.patientShow[sw.dataset.pshow]);
+  });
+  updatePatientPreviews();
   syncToggles();
 }
 syncUIFromState();
