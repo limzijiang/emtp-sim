@@ -1353,10 +1353,8 @@ function loadSegment(idx) {
   state.stOffset = seg.stOffset;
   state.pulseless = seg.pulseless;
   state.cpr = seg.cpr;
-  state.notes = seg.notes;
   state.vitals = Object.assign({}, state.vitals, seg.vitals);
   state.vitals.map = Math.round((state.vitals.sbp + 2 * state.vitals.dbp) / 3);
-  state.panel = { mode: 'notes' };
   rampTarget = null;
   syncUIFromState();
   publishState(true);
