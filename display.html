@@ -426,7 +426,7 @@
       <span><span class="clock" id="hdr-clock">--:--:--</span> · <span class="battery">100%</span></span>
     </div>
 
-    <div class="waveform-row">
+    <div class="waveform-row" id="row-ecg">
       <div class="waveform-canvas-wrap">
         <div class="waveform-label green">II · 6s</div>
         <canvas id="cv-ecg"></canvas>
@@ -434,11 +434,10 @@
       <div class="numeric-box green">
         <div class="row1">HR<span class="units">bpm</span></div>
         <div class="value" id="v-hr">75</div>
-        <div class="sub" id="v-rhythm">NSR</div>
       </div>
     </div>
 
-    <div class="waveform-row">
+    <div class="waveform-row" id="row-spo2">
       <div class="waveform-canvas-wrap">
         <div class="waveform-label cyan">PLETH</div>
         <canvas id="cv-spo2"></canvas>
@@ -450,7 +449,7 @@
       </div>
     </div>
 
-    <div class="waveform-row">
+    <div class="waveform-row" id="row-co2">
       <div class="waveform-canvas-wrap">
         <div class="waveform-label yellow">CO₂</div>
         <canvas id="cv-co2"></canvas>
@@ -462,13 +461,13 @@
       </div>
     </div>
 
-    <div class="extra-numerics">
-      <div class="numeric-box white">
+    <div class="extra-numerics" id="extra-row">
+      <div class="numeric-box white" id="box-nibp">
         <div class="row1">NIBP<span class="units">mmHg</span></div>
         <div class="value"><span id="v-sbp">128</span>/<span id="v-dbp">82</span></div>
         <div class="sub">MAP <span id="v-map">97</span> · <span id="v-bptime">手動</span></div>
       </div>
-      <div class="numeric-box orange">
+      <div class="numeric-box orange" id="box-temp">
         <div class="row1">Temp<span class="units">°C</span></div>
         <div class="value" id="v-temp">36.7</div>
         <div class="sub" id="v-tempsite">耳溫</div>
@@ -518,6 +517,7 @@ let state = {
   medsList: [],
   shockCounter: 0,
   twelveLeadFreeze: null,
+  show: { ecg: true, spo2: true, co2: true, nibp: true, temp: true },
 };
 let lastShockCount = 0;
 
@@ -872,6 +872,7 @@ class Waveform {
     return this.h - t * this.h;
   }
   step(samplesPerFrame) {
+    if (this.w <= 0 || this.h <= 0) return;
     const ctx = this.ctx;
     const w = this.w, h = this.h;
     const eraseGap = 18;
@@ -959,9 +960,25 @@ function tick(now) {
 }
 
 // =================== Numeric & UI sync ===================
+function applyVisibility() {
+  const show = state.show || { ecg: true, spo2: true, co2: true, nibp: true, temp: true };
+  document.getElementById('row-ecg').style.display = show.ecg ? '' : 'none';
+  document.getElementById('row-spo2').style.display = show.spo2 ? '' : 'none';
+  document.getElementById('row-co2').style.display = show.co2 ? '' : 'none';
+  document.getElementById('box-nibp').style.display = show.nibp ? '' : 'none';
+  document.getElementById('box-temp').style.display = show.temp ? '' : 'none';
+  document.getElementById('extra-row').style.display = (show.nibp || show.temp) ? '' : 'none';
+  // Defer reflow then resize waveforms to fit new heights
+  requestAnimationFrame(() => {
+    if (typeof waveforms !== 'undefined') {
+      for (const wf of waveforms) wf.resize();
+    }
+  });
+}
+
 function updateNumerics() {
+  applyVisibility();
   document.getElementById('v-hr').textContent = state.pulseless ? '--' : Math.round(state.vitals.hr);
-  document.getElementById('v-rhythm').textContent = humanRhythm(state.rhythm) + (state.ectopy && state.ectopy !== 'none' ? ' · ' + state.ectopy : '');
   document.getElementById('v-spo2').textContent = state.pulseless ? '--' : Math.round(state.vitals.spo2);
   document.getElementById('v-pi').textContent = (state.vitals.pi || 0).toFixed(1);
   document.getElementById('v-rr').textContent = Math.round(state.vitals.rr);

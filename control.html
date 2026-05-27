@@ -326,6 +326,15 @@
     <!-- ============ VITALS TAB ============ -->
     <div class="tab-pane active" data-tab="vitals">
       <div class="section">
+        <h3>大銀幕 Monitor 顯示項目</h3>
+        <div class="toggle-row"><span>ECG 波形 + HR</span><div class="switch on" data-show="ecg"></div></div>
+        <div class="toggle-row"><span>SpO₂ Pleth + 數值</span><div class="switch on" data-show="spo2"></div></div>
+        <div class="toggle-row"><span>EtCO₂ 波形 + RR</span><div class="switch on" data-show="co2"></div></div>
+        <div class="toggle-row"><span>NIBP 血壓</span><div class="switch on" data-show="nibp"></div></div>
+        <div class="toggle-row"><span>體溫 Temp</span><div class="switch on" data-show="temp"></div></div>
+      </div>
+
+      <div class="section">
         <h3>生命徵象</h3>
         <div class="ramp-control">
           變化速度
@@ -708,6 +717,7 @@ let state = {
   iframeUrl: '',
   medsList: [],
   shockCounter: 0,
+  show: { ecg: true, spo2: true, co2: true, nibp: true, temp: true },
 };
 
 // =================== MQTT ===================
@@ -901,11 +911,20 @@ function syncToggles() {
   document.getElementById('t-cpr').classList.toggle('on', !!state.cpr);
   document.getElementById('btn-cpr-toggle').classList.toggle('active', !!state.cpr);
 }
-document.querySelectorAll('.switch').forEach(sw => {
+document.querySelectorAll('.switch[data-key]').forEach(sw => {
   sw.addEventListener('click', () => {
     const key = sw.dataset.key;
     state[key] = !state[key];
     syncToggles();
+    publishStateDebounced();
+  });
+});
+document.querySelectorAll('.switch[data-show]').forEach(sw => {
+  sw.addEventListener('click', () => {
+    const key = sw.dataset.show;
+    if (!state.show) state.show = { ecg: true, spo2: true, co2: true, nibp: true, temp: true };
+    state.show[key] = !state.show[key];
+    sw.classList.toggle('on', !!state.show[key]);
     publishStateDebounced();
   });
 });
@@ -1286,6 +1305,10 @@ function syncUIFromState() {
   document.getElementById('img-caption').value = state.imagingCaption || '';
   document.getElementById('iframe-url').value = state.iframeUrl || '';
   document.getElementById('custom-html').value = state.customHtml || '';
+  if (!state.show) state.show = { ecg: true, spo2: true, co2: true, nibp: true, temp: true };
+  document.querySelectorAll('.switch[data-show]').forEach(sw => {
+    sw.classList.toggle('on', !!state.show[sw.dataset.show]);
+  });
   syncToggles();
 }
 syncUIFromState();
