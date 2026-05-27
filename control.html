@@ -275,6 +275,58 @@
     border: 1px solid #2a2f38;
   }
 
+  .image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .image-tile {
+    border: 2px solid #2a2f38;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #21262d;
+    transition: transform 0.08s, border-color 0.1s;
+    position: relative;
+  }
+  .image-tile:active { transform: scale(0.96); }
+  .image-tile.active {
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 2px rgba(88,166,255,0.25);
+  }
+  .image-tile.active::after {
+    content: '顯示中';
+    position: absolute;
+    top: 4px; right: 4px;
+    background: #1f6feb;
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  .image-tile img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+    background: #0d1117;
+  }
+  .image-tile-label {
+    padding: 6px 8px;
+    font-size: 11px;
+    color: #c9d1d9;
+    line-height: 1.3;
+    text-align: center;
+    min-height: 32px;
+  }
+  .image-tile-missing {
+    width: 100%; aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center;
+    color: #666; font-size: 11px;
+    background: #0d1117;
+  }
+
   .patient-field-wrap {
     display: grid;
     grid-template-columns: 44px 1fr;
@@ -816,6 +868,13 @@
       <div class="section">
         <h3>vital sign 套組 · 依時序</h3>
         <div id="segments-container"></div>
+      </div>
+
+      <div class="section">
+        <h3>病人圖片</h3>
+        <div class="small-hint">點圖片即顯示在大銀幕右半邊，與 vital sign 套組獨立。</div>
+        <div class="image-grid" id="image-grid"></div>
+        <button class="case-action-btn secondary" style="margin-top:10px" onclick="clearSegmentImage()">隱藏圖片</button>
       </div>
 
       <div class="section">
@@ -1548,6 +1607,18 @@ function renderCaseUI() {
        <div class="seg-note">${escapeForAttr(seg.summary || '')}</div>
      </div>`
   ).join('');
+
+  const grid = document.getElementById('image-grid');
+  const active = state.segmentImage || '';
+  grid.innerHTML = c.segments.map((seg, i) => {
+    if (!seg.image) return '';
+    const isActive = seg.image === active ? 'active' : '';
+    return `<div class="image-tile ${isActive}" data-seg-idx="${i}" onclick="loadSegmentImage(${i})">
+      <img src="${escapeForAttr(seg.image)}" loading="lazy"
+           onerror="this.outerHTML='<div class=\\'image-tile-missing\\'>圖片未生成</div>'">
+      <div class="image-tile-label">${escapeForAttr(seg.label)}</div>
+    </div>`;
+  }).filter(Boolean).join('') || '<div class="small-hint">(此案無圖片)</div>';
 }
 
 function selectCase(idx) {
@@ -1581,16 +1652,34 @@ function loadSegment(idx) {
   state.cpr = !!seg.cpr;
   state.vitals = Object.assign({}, state.vitals, seg.vitals);
   state.vitals.map = Math.round((state.vitals.sbp + 2 * state.vitals.dbp) / 3);
-  state.segmentImage = seg.image || null;
-  state.segmentLabel = seg.label || '';
-  if (seg.image) {
-    state.panel = { mode: 'patientPhoto' };
-  }
   rampTarget = null;
   syncUIFromState();
   publishState(true);
   navigator.vibrate?.(40);
 }
+
+function loadSegmentImage(idx) {
+  const seg = activeCase().segments[idx];
+  if (!seg?.image) return;
+  state.segmentImage = seg.image;
+  state.segmentLabel = seg.label || '';
+  state.panel = { mode: 'patientPhoto' };
+  publishState(true);
+  navigator.vibrate?.(20);
+  // Mark thumbnail as active
+  document.querySelectorAll('.image-tile').forEach(t => t.classList.toggle('active', parseInt(t.dataset.segIdx) === idx));
+}
+
+function clearSegmentImage() {
+  state.segmentImage = null;
+  state.segmentLabel = '';
+  state.panel = { mode: 'blank' };
+  publishState(true);
+  document.querySelectorAll('.image-tile').forEach(t => t.classList.remove('active'));
+}
+
+window.loadSegmentImage = loadSegmentImage;
+window.clearSegmentImage = clearSegmentImage;
 
 window.selectCase = selectCase;
 
