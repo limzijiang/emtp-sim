@@ -889,6 +889,8 @@ let state = {
   shockCounter: 0,
   show: { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true },
   patientShow: { weight: false, allergy: false, pmh: false, meds: false },
+  segmentImage: null,
+  segmentLabel: '',
 };
 
 // =================== MQTT ===================
@@ -1384,23 +1386,23 @@ const CASES = [
       meds: 'Levetiracetam (已自行停藥 2 週)',
     },
     segments: [
-      { label: '① 到場：抽搐中',
+      { label: '① 到場：抽搐中', image: 'images/c1-s1.jpg',
         summary: 'GTC 持續，口鼻泡沫、gurgling，瞳孔 3.5+/3.5+',
         vitals: { hr: 125, sbp: 95, dbp: 60, spo2: 97, pi: 1.5, rr: 24, etco2: 38, temp: 37.6, tempSite: '耳溫' },
         rhythm: 'STach', pulseless: false, cpr: false },
-      { label: '② 持續抽搐 · SpO₂ 下降', style: 'warn',
+      { label: '② 持續抽搐 · SpO₂ 下降', image: 'images/c1-s2.jpg', style: 'warn',
         summary: 'SpO₂ 掉到 90%、胸廓淺、發紺 → 升級 BVM',
         vitals: { hr: 130, sbp: 100, dbp: 65, spo2: 90, pi: 1.2, rr: 28, etco2: 45, temp: 37.7, tempSite: '耳溫' },
         rhythm: 'STach', pulseless: false, cpr: false },
-      { label: '③ Midazolam 5mg IM → 抽搐停止',
+      { label: '③ Midazolam 5mg IM → 抽搐停止', image: 'images/c1-s3.jpg',
         summary: 'Postictal, GCS E1M1V1, 血糖 52 mg/dL (低血糖)',
         vitals: { hr: 110, sbp: 88, dbp: 55, spo2: 96, pi: 1.8, rr: 14, etco2: 38, temp: 37.5, tempSite: '耳溫' },
         rhythm: 'STach', pulseless: false, cpr: false },
-      { label: '④ BZD 副作用 + 低血糖未矯正', style: 'warn',
+      { label: '④ BZD 副作用 + 低血糖未矯正', image: 'images/c1-s4.jpg', style: 'warn',
         summary: '⚠️ 呼吸抑制 + 低血壓 + 低血糖 → BVM + D10W stat',
         vitals: { hr: 92, sbp: 75, dbp: 45, spo2: 85, pi: 0.8, rr: 6, etco2: 55, temp: 37.4, tempSite: '耳溫' },
         rhythm: 'NSR', pulseless: false, cpr: false },
-      { label: '⑤ D10W 75 mL IV → 恢復穩定', style: 'good',
+      { label: '⑤ D10W 75 mL IV → 恢復穩定', image: 'images/c1-s5.jpg', style: 'good',
         summary: '血糖 94，意識緩慢恢復，後送',
         vitals: { hr: 100, sbp: 95, dbp: 60, spo2: 99, pi: 2.0, rr: 16, etco2: 36, temp: 37.0, tempSite: '耳溫' },
         rhythm: 'NSR', pulseless: false, cpr: false },
@@ -1418,19 +1420,19 @@ const CASES = [
       meds: '無',
     },
     segments: [
-      { label: '① 到場：緩脈 + IICP 徵象',
+      { label: '① 到場：緩脈 + IICP 徵象', image: 'images/c2-s1.jpg',
         summary: 'HR 50、RR 10 胸凹、發紺、瞳孔不等、前囟門凸',
         vitals: { hr: 50, sbp: 130, dbp: 80, spo2: 88, pi: 0.6, rr: 10, etco2: 35, temp: 36.0, tempSite: '耳溫' },
         rhythm: 'SBrady', pulseless: false, cpr: false },
-      { label: '② BVM 正壓通氣 30s~2min',
+      { label: '② BVM 正壓通氣 30s~2min', image: 'images/c2-s2.jpg',
         summary: '通氣後 HR 仍 50/min，無改善 → 啟動 CPR',
         vitals: { hr: 50, sbp: 135, dbp: 82, spo2: 92, pi: 0.7, rr: 20, etco2: 32, temp: 36.0, tempSite: '耳溫' },
         rhythm: 'SBrady', pulseless: false, cpr: false },
-      { label: '③ 脈搏仍 <60 → CPR + Epi 0.1mg IO', style: 'warn',
+      { label: '③ 脈搏仍 <60 → CPR + Epi 0.1mg IO', image: 'images/c2-s3.jpg', style: 'warn',
         summary: '15:2 壓胸 + BVM + Epinephrine 0.1mg IO (0.01×10kg)',
         vitals: { hr: 50, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 18, temp: 35.8, tempSite: '耳溫' },
         rhythm: 'SBrady', pulseless: true, cpr: true },
-      { label: '④ ROSC → 後送兒科急救醫院', style: 'good',
+      { label: '④ ROSC → 後送兒科急救醫院', image: 'images/c2-s4.jpg', style: 'good',
         summary: 'Post-arrest tachy，BP 回升，繼續通氣',
         vitals: { hr: 130, sbp: 100, dbp: 65, spo2: 95, pi: 1.2, rr: 25, etco2: 32, temp: 36.0, tempSite: '耳溫' },
         rhythm: 'STach', pulseless: false, cpr: false },
@@ -1448,19 +1450,19 @@ const CASES = [
       meds: '無',
     },
     segments: [
-      { label: '① 到場：嚴重過敏性休克 + 喉頭水腫', style: 'warn',
+      { label: '① 到場：嚴重過敏性休克 + 喉頭水腫', image: 'images/c3-s1.jpg', style: 'warn',
         summary: 'Stridor、蕁麻疹、CRT 4s、末梢濕冷',
         vitals: { hr: 120, sbp: 60, dbp: 40, spo2: 85, pi: 0.6, rr: 32, etco2: 30, temp: 39.0, tempSite: '耳溫' },
         rhythm: 'STach', pulseless: false, cpr: false },
-      { label: '② Epinephrine 0.3mg IM + NRM 15L',
+      { label: '② Epinephrine 0.3mg IM + NRM 15L', image: 'images/c3-s2.jpg',
         summary: '0.01×30 = 0.3mg IM 大腿外側，stridor 略緩',
         vitals: { hr: 130, sbp: 72, dbp: 46, spo2: 90, pi: 0.9, rr: 30, etco2: 32, temp: 38.5, tempSite: '耳溫' },
         rhythm: 'STach', pulseless: false, cpr: false },
-      { label: '③ NS 600mL IVF + Epi 5mg 霧化',
+      { label: '③ NS 600mL IVF + Epi 5mg 霧化', image: 'images/c3-s3.jpg',
         summary: '20mL/kg × 30 = 600mL，BP 回升，意識↑',
         vitals: { hr: 120, sbp: 90, dbp: 50, spo2: 96, pi: 1.5, rr: 28, etco2: 34, temp: 37.2, tempSite: '耳溫' },
         rhythm: 'STach', pulseless: false, cpr: false },
-      { label: '④ 後送中 (警示 biphasic 反應)', style: 'good',
+      { label: '④ 後送中 (警示 biphasic 反應)', image: 'images/c3-s4.jpg', style: 'good',
         summary: '上車後又輕微 stridor，持續監測過敏反應',
         vitals: { hr: 100, sbp: 100, dbp: 65, spo2: 97, pi: 1.8, rr: 22, etco2: 36, temp: 36.5, tempSite: '耳溫' },
         rhythm: 'NSR', pulseless: false, cpr: false },
@@ -1478,19 +1480,19 @@ const CASES = [
       meds: 'SABA MDI PRN',
     },
     segments: [
-      { label: '① 到場：急性氣喘嚴重發作',
+      { label: '① 到場：急性氣喘嚴重發作', image: 'images/c4-s1.jpg',
         summary: 'Wheezing、鼻翼煽動、肋間凹陷、無法說完整句',
         vitals: { hr: 130, sbp: 92, dbp: 60, spo2: 85, pi: 1.2, rr: 36, etco2: 28, temp: 36.0, tempSite: '耳溫' },
         rhythm: 'STach', pulseless: false, cpr: false },
-      { label: '② NRM 15L 給氧 + 坐姿',
+      { label: '② NRM 15L 給氧 + 坐姿', image: 'images/c4-s2.jpg',
         summary: 'SpO₂ 升到 90%，仍 wheezing 且喘',
         vitals: { hr: 128, sbp: 92, dbp: 60, spo2: 90, pi: 1.5, rr: 34, etco2: 30, temp: 36.0, tempSite: '耳溫' },
         rhythm: 'STach', pulseless: false, cpr: false },
-      { label: '③ SABA MDI 2 dose + Salbutamol 5mg 霧化', style: 'good',
+      { label: '③ SABA MDI 2 dose + Salbutamol 5mg 霧化', image: 'images/c4-s3.jpg', style: 'good',
         summary: '可說完整句、wheezing 減弱、HR↑ (β-agonist 副作用)',
         vitals: { hr: 142, sbp: 98, dbp: 62, spo2: 96, pi: 2.0, rr: 24, etco2: 35, temp: 36.2, tempSite: '耳溫' },
         rhythm: 'STach', pulseless: false, cpr: false },
-      { label: '④ 危險徵象：silent chest / 嗜睡 (惡化)', style: 'warn',
+      { label: '④ 危險徵象：silent chest / 嗜睡 (惡化)', image: 'images/c4-s4.jpg', style: 'warn',
         summary: '⚠️ 嗜睡、呼吸音變弱、SpO₂ <88% → BVM + ALS',
         vitals: { hr: 100, sbp: 86, dbp: 55, spo2: 82, pi: 0.8, rr: 18, etco2: 60, temp: 36.0, tempSite: '耳溫' },
         rhythm: 'STach', pulseless: false, cpr: false },
@@ -1579,6 +1581,11 @@ function loadSegment(idx) {
   state.cpr = !!seg.cpr;
   state.vitals = Object.assign({}, state.vitals, seg.vitals);
   state.vitals.map = Math.round((state.vitals.sbp + 2 * state.vitals.dbp) / 3);
+  state.segmentImage = seg.image || null;
+  state.segmentLabel = seg.label || '';
+  if (seg.image) {
+    state.panel = { mode: 'patientPhoto' };
+  }
   rampTarget = null;
   syncUIFromState();
   publishState(true);
@@ -1608,6 +1615,8 @@ function resetCase() {
   state.shockCounter = 0;
   state.panel = { mode: 'blank' };
   state.show = { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true };
+  state.segmentImage = null;
+  state.segmentLabel = '';
   rampTarget = null;
   syncUIFromState();
   publishState(true);

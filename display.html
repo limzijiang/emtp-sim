@@ -544,6 +544,8 @@ let state = {
   twelveLeadFreeze: null,
   show: { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true },
   patientShow: { weight: false, allergy: false, pmh: false, meds: false },
+  segmentImage: null,
+  segmentLabel: '',
 };
 let lastShockCount = 0;
 
@@ -1208,7 +1210,31 @@ function renderPanel() {
     case 'iframe':
       p.innerHTML = `<div class="panel-header">外部資料</div><div class="iframe-wrap"><iframe src="${escapeAttr(state.iframeUrl || 'about:blank')}" sandbox="allow-scripts allow-same-origin"></iframe></div>`;
       break;
+    case 'patientPhoto':
+      p.innerHTML = patientPhotoHtml();
+      break;
   }
+}
+
+function patientPhotoHtml() {
+  const url = state.segmentImage || '';
+  const label = state.segmentLabel || '病人狀態';
+  if (!url) {
+    return `<div class="panel-header">${escapeHtml(label)}</div>
+      <div style="padding:40px;color:#888;text-align:center;font-size:16px;line-height:1.6">
+        (此階段尚未生成病人圖片)<br>
+        <span style="font-size:13px;color:#666">請見 repo 內 PROMPTS.md，使用 ChatGPT Image 2.0 / Sora 生成後放入 images/ 資料夾</span>
+      </div>`;
+  }
+  return `<div class="panel-header">${escapeHtml(label)}</div>
+    <div class="imaging-wrap">
+      <img src="${escapeAttr(url)}" alt="${escapeAttr(label)}"
+           onerror="this.style.display='none';this.parentElement.querySelector('.img-missing').style.display='block'">
+      <div class="img-missing" style="display:none; color:#888; padding:40px; text-align:center; font-size:14px;">
+        圖片尚未生成<br>
+        <code style="color:#6cf">${escapeHtml(url)}</code>
+      </div>
+    </div>`;
 }
 
 function patientPanelHtml() {
