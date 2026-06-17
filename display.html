@@ -1448,9 +1448,18 @@ const BROKERS = params.get('broker') ? [params.get('broker')] : [
 let brokerIdx = 0;
 let everConnected = false;
 let client = null;
+let attemptSettled = false;   // guard: error+close must advance broker only once per attempt
+let reconnectFails = 0;       // count failed auto-reconnects to a previously-good broker
 
 const connbar = document.getElementById('connbar');
 const connStatus = document.getElementById('conn-status');
+
+function teardownClient() {
+  if (!client) return;
+  try { client.removeAllListeners(); } catch {}
+  try { client.end(true); } catch {}
+  client = null;
+}
 
 function connectMqtt() {
   const url = BROKERS[brokerIdx];
@@ -1459,38 +1468,55 @@ function connectMqtt() {
   connbar.className = '';
   connStatus.textContent = `連線 ${host}…`;
 
-  if (client) { try { client.end(true); } catch {} }
+  teardownClient();
+  attemptSettled = false;
   client = mqtt.connect(url, {
     clientId: 'display-' + Math.random().toString(36).slice(2, 10),
-    reconnectPeriod: everConnected ? 2000 : 0,
+    reconnectPeriod: everConnected ? 2500 : 0,
     connectTimeout: 7000,
     clean: true,
   });
+  const thisClient = client;
 
   client.on('connect', () => {
     everConnected = true;
+    attemptSettled = true;
+    reconnectFails = 0;
     connbar.className = 'connected';
     connStatus.textContent = `已連線 (${host})`;
-    client.subscribe([topicState, topicAction], { qos: 0 });
-    client.publish(topicHello, JSON.stringify({ role: 'display', t: Date.now() }));
-    setTimeout(() => { connbar.style.display = 'none'; }, 2000);
+    thisClient.subscribe([topicState, topicAction], { qos: 0 });
+    thisClient.publish(topicHello, JSON.stringify({ role: 'display', t: Date.now() }));
+    setTimeout(() => { if (client === thisClient) connbar.style.display = 'none'; }, 2000);
   });
   client.on('reconnect', () => {
     connbar.style.display = '';
     connbar.className = '';
     connStatus.textContent = '重新連線中…';
   });
+  // Before first successful connect: any failure advances to the next broker (once).
+  const failBeforeConnect = () => {
+    if (attemptSettled) return;
+    attemptSettled = true;
+    advanceBroker();
+  };
   client.on('error', (e) => {
-    if (!everConnected) { tryNextBroker(); return; }
+    if (!everConnected) { failBeforeConnect(); return; }
     connbar.style.display = '';
     connbar.className = 'error';
-    connStatus.textContent = '錯誤: ' + (e?.message || 'unknown');
+    connStatus.textContent = '連線中斷，重試中…';
   });
   client.on('close', () => {
-    if (!everConnected) { tryNextBroker(); return; }
+    if (!everConnected) { failBeforeConnect(); return; }
     connbar.style.display = '';
     connbar.className = 'error';
-    connStatus.textContent = '已斷線';
+    connStatus.textContent = '已斷線，重新連線中…';
+    // If a previously-good broker keeps dropping, switch broker after a few tries.
+    reconnectFails++;
+    if (reconnectFails >= 4) {
+      reconnectFails = 0;
+      everConnected = false;   // re-enter fast fail-over mode
+      advanceBroker();
+    }
   });
   client.on('message', (topic, buf) => {
     let msg;
@@ -1511,16 +1537,16 @@ function connectMqtt() {
   });
 }
 
-function tryNextBroker() {
-  if (client) { try { client.end(true); } catch {} }
+function advanceBroker() {
+  teardownClient();
   brokerIdx = (brokerIdx + 1) % BROKERS.length;
   if (brokerIdx === 0 && BROKERS.length > 1) {
     connbar.style.display = '';
     connbar.className = 'error';
-    connStatus.textContent = '所有 broker 失敗，5 秒後重試';
-    setTimeout(connectMqtt, 5000);
+    connStatus.textContent = '所有 broker 連線失敗，3 秒後重試…';
+    setTimeout(connectMqtt, 3000);
   } else {
-    setTimeout(connectMqtt, 600);
+    setTimeout(connectMqtt, 400);
   }
 }
 
