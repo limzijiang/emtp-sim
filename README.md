@@ -30,6 +30,17 @@ control:  https://your-domain.com/control.html?s=mycase01
 
 控制端會在 localStorage 記住 Session ID，第一次開若沒指定會自動隨機產生並寫回 URL。點手機右上角的 Session ID 可以看到對應的 display URL（可複製、貼到大銀幕電腦）。
 
+### 多房間平行模擬
+
+同時跑多組案例只要用不同的 `?s=` 即可，彼此完全獨立 (MQTT topic 依 session ID 隔離)：
+
+| 房間 | 控制台 URL | 大銀幕 URL |
+|---|---|---|
+| 1 | `control.html?s=case01` | `display.html?s=case01` |
+| 2 | `control.html?s=case02` | `display.html?s=case02` |
+
+各房間「目前選哪個教案」會獨立存在 localStorage (key: `emtp-sim-case-idx:{session}`)，不會互相覆寫。
+
 ### 3. 操作
 
 - **Vitals 分頁**：滑桿調整 HR / BP / SpO₂ / RR / EtCO₂ / Temp。上方「變化速度」可選擇立即、3 秒、10 秒、30 秒平滑變化（拖滑桿後會線性過渡到目標值）

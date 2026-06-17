@@ -1580,7 +1580,8 @@ const CASES = [
   },
 ];
 
-let activeCaseIdx = parseInt(localStorage.getItem('emtp-sim-case-idx') || '0', 10);
+const CASE_IDX_KEY = `emtp-sim-case-idx:${sessionId}`;
+let activeCaseIdx = parseInt(localStorage.getItem(CASE_IDX_KEY) || '0', 10);
 if (isNaN(activeCaseIdx) || activeCaseIdx < 0 || activeCaseIdx >= CASES.length) activeCaseIdx = 0;
 
 function activeCase() { return CASES[activeCaseIdx]; }
@@ -1646,7 +1647,7 @@ function selectCase(idx) {
   idx = parseInt(idx, 10);
   if (isNaN(idx) || idx < 0 || idx >= CASES.length) return;
   activeCaseIdx = idx;
-  localStorage.setItem('emtp-sim-case-idx', String(activeCaseIdx));
+  localStorage.setItem(CASE_IDX_KEY, String(activeCaseIdx));
   renderCaseUI();
 }
 
