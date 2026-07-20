@@ -19,27 +19,31 @@
 - 把整個資料夾丟上去
 - `display.html` 與 `control.html` 甚至可以放在**不同網域**（這就是 MQTT 中繼的優點）
 
-### 2. 配對
+### 2. 配對（房間）
 
-兩端用同一個 `?s=` Session ID 連到 broker：
+控制台與大銀幕用**同一個 `?room=` 房間編號**連到 broker：
 
 ```
-display:  https://your-domain.com/display.html?s=mycase01
-control:  https://your-domain.com/control.html?s=mycase01
+control:  https://your-domain.com/control.html?room=1
+display:  https://your-domain.com/display.html?room=1
 ```
 
-控制端會在 localStorage 記住 Session ID，第一次開若沒指定會自動隨機產生並寫回 URL。點手機右上角的 Session ID 可以看到對應的 display URL（可複製、貼到大銀幕電腦）。
+`?room=N` 會對應到獨立的 MQTT topic namespace `room-N`，房間之間完全隔離。控制台右上角會顯示「房間 N」；點它可看到對應的 display URL（可複製、貼到大銀幕電腦）。
 
-### 多房間平行模擬
+> 也仍支援舊的 `?s=任意ID`（自訂 session 名稱）；沒帶任何參數時會隨機產生一個並記在 localStorage。
 
-同時跑多組案例只要用不同的 `?s=` 即可，彼此完全獨立 (MQTT topic 依 session ID 隔離)：
+### 多房間平行小組上課
+
+四位老師各自一間，同時跑互不干擾（已實測隔離：房間 1 的操作不會影響房間 2）：
 
 | 房間 | 控制台 URL | 大銀幕 URL |
 |---|---|---|
-| 1 | `control.html?s=case01` | `display.html?s=case01` |
-| 2 | `control.html?s=case02` | `display.html?s=case02` |
+| 1 | `control.html?room=1` | `display.html?room=1` |
+| 2 | `control.html?room=2` | `display.html?room=2` |
+| 3 | `control.html?room=3` | `display.html?room=3` |
+| 4 | `control.html?room=4` | `display.html?room=4` |
 
-各房間「目前選哪個教案」會獨立存在 localStorage (key: `emtp-sim-case-idx:{session}`)，不會互相覆寫。
+各房間「目前選哪個教案」會獨立存在 localStorage (key: `emtp-sim-case-idx:room-N`)，不會互相覆寫。
 
 ### 3. 操作
 

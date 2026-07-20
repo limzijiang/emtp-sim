@@ -917,9 +917,14 @@
 <script>
 'use strict';
 
-// =================== Session ===================
+// =================== Session / Room ===================
 const params = new URLSearchParams(location.search);
-let sessionId = (params.get('s') || params.get('session') || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32);
+const roomParam = (params.get('room') || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24);
+// Preferred: ?room=1 → session "room-1" (namespaced, independent per room)
+let sessionId = roomParam
+  ? 'room-' + roomParam
+  : (params.get('s') || params.get('session') || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32);
+let usingRoom = !!roomParam;
 if (!sessionId) {
   sessionId = localStorage.getItem('emtp-sim-session') || Math.random().toString(36).slice(2, 7);
   const url = new URL(location.href);
@@ -928,7 +933,8 @@ if (!sessionId) {
 }
 localStorage.setItem('emtp-sim-session', sessionId);
 const broker = params.get('broker') || 'wss://broker.hivemq.com:8884/mqtt';
-document.getElementById('session-id').textContent = sessionId;
+// Display label: "房間 1" for room mode, else the raw session id
+document.getElementById('session-id').textContent = usingRoom ? ('房間 ' + roomParam) : sessionId;
 
 // =================== State ===================
 let state = {
@@ -1465,7 +1471,14 @@ window.clearMeds = clearMeds;
 document.getElementById('session-id').addEventListener('click', () => {
   const url = new URL(location.href);
   url.pathname = url.pathname.replace(/control\.html$/, 'display.html');
-  url.searchParams.set('s', sessionId);
+  // Preserve whichever addressing scheme this control is using
+  if (usingRoom) {
+    url.searchParams.delete('s');
+    url.searchParams.set('room', roomParam);
+  } else {
+    url.searchParams.delete('room');
+    url.searchParams.set('s', sessionId);
+  }
   document.getElementById('display-url').textContent = url.toString();
   document.getElementById('qr-modal').classList.add('active');
 });

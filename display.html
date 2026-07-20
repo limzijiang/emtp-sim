@@ -511,9 +511,12 @@
 
 // =================== Session / URL params ===================
 const params = new URLSearchParams(location.search);
-const sessionId = (params.get('s') || params.get('session') || 'demo').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32) || 'demo';
+const roomParam = (params.get('room') || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24);
+const sessionId = roomParam
+  ? 'room-' + roomParam
+  : ((params.get('s') || params.get('session') || 'demo').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32) || 'demo');
 const broker = params.get('broker') || 'wss://broker.hivemq.com:8884/mqtt';
-document.getElementById('conn-session').textContent = sessionId;
+document.getElementById('conn-session').textContent = roomParam ? ('房間 ' + roomParam) : sessionId;
 
 // =================== Default state ===================
 let state = {
