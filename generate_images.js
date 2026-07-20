@@ -73,13 +73,13 @@ const PROMPTS = [
 
   // ============ Case 5 — 5yo myocarditis → OHCA ============
   { file: 'c5-s1.jpg', prompt:
-    'A calm photograph of a 5-year-old Taiwanese boy sitting on a home sofa wearing a pediatric oxygen mask, resting quietly, a caring father sitting beside him with a hand on his shoulder. Bright home living room, daytime, warm lighting. Reassuring domestic scene for a first-aid training reference. Taiwanese ethnicity, authentic East-Asian features, photorealistic, no text, no watermarks.'
+    'A warm candid photograph of a father sitting on a living-room sofa with his young son (about 5 years old) resting against his side, the father looking down at him with a caring expression, one arm around the child. A first-aid kit and an oxygen tank sit on the floor nearby. Bright cozy home, daytime, soft natural light. Reassuring domestic first-aid training reference. Taiwanese ethnicity, authentic East-Asian features, photorealistic, no text, no watermarks.'
   },
   { file: 'c5-s3.jpg', prompt:
     'Close-up photograph of a ZOLL-style defibrillator monitor screen during a pediatric emergency, the screen showing a chaotic ventricular fibrillation waveform and red alarm indicators, defibrillation pads cable visible. Blurred out-of-focus background of paramedics in uniform working. Ambulance interior with red and blue light reflections. Cinematic professional medical photography, photorealistic, no readable text overlay, no watermarks.'
   },
   { file: 'c5-s5.jpg', prompt:
-    'A calm photograph of a 5-year-old Taiwanese boy resting with eyes closed on an ambulance stretcher, wrapped warmly, cardiac monitor sticker leads on the chest and a small oxygen mask over the face, a cardiac monitor screen visible in the background. Soft ambulance interior lighting, quiet reassuring atmosphere. Taiwanese ethnicity, authentic East-Asian features, photorealistic training reference, no text, no watermarks.'
+    'Close-up photograph of a ZOLL-style patient monitor screen after successful resuscitation, showing a restored organized sinus-tachycardia ECG waveform, a green SpO2 pleth trace, and a blood pressure reading, with calmer green indicators (no red alarms). Blurred out-of-focus ambulance interior background with warm lighting. Cinematic professional medical photography, photorealistic, no readable text overlay, no watermarks.'
   },
 
   // ============ Case 6 — 11mo infant drowning OHCA ============
@@ -90,7 +90,7 @@ const PROMPTS = [
     'Educational medical training photograph focused on equipment and gloved hands: an intraosseous (IO) needle placed in the proximal tibia of an infant-size training manikin leg on a stretcher, a paramedic gloved hand holding a small syringe of medication, infant resuscitation equipment laid out. Bright ambulance interior. Clinical, respectful, professional training reference. Photorealistic, no text, no watermarks.'
   },
   { file: 'c6-s4.jpg', prompt:
-    'A gentle calm photograph of an 11-month-old Taiwanese baby boy sleeping peacefully wrapped in soft warm blankets on a padded stretcher inside an ambulance, a small infant oxygen mask resting gently over nose and mouth, a few cardiac monitor sticker leads on the chest, warming blanket emphasized. Soft warm interior lighting, tender reassuring atmosphere. Taiwanese ethnicity infant features, photorealistic training reference, no text, no watermarks.'
+    'Close-up photograph of an infant-size patient monitor screen inside an ambulance showing a slow heart rate reading around 25 bpm with a bradycardia alarm, a low SpO2 value, and a slow ECG trace. In the soft-focus foreground a folded silver-and-white warming blanket and a small oxygen mask rest on a padded infant stretcher. Warm ambulance interior lighting. Cinematic professional medical photography, photorealistic, no readable text overlay, no watermarks.'
   },
 ];
 
