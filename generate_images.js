@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-// Generate 17 patient stage images via OpenAI gpt-image-1
+// Generate patient stage images via OpenAI gpt-image-2 (GPT Image 2.0)
+// Case 5/6 prompts are PAT-focused (patient clinical appearance); if a realistic
+// child prompt is moderation-blocked, an automatic training-manikin fallback is tried.
 // Usage: node generate_images.js [filename]    (filename optional — defaults to all)
 
 const fs = require('fs');
@@ -10,6 +12,11 @@ const apiKey = fs.readFileSync(path.join(os.homedir(), '.openai/api_key'), 'utf8
 const OUT_DIR = path.join(__dirname, 'images');
 
 const COMMON = ' Style: professional medical training photograph for healthcare educational simulation. Subject is a young patient actor / depicted for educational purposes. Ethically depicted, respectful, clinically accurate. Taiwanese ethnicity, authentic East-Asian facial features, photorealistic skin texture and natural lighting. Sharp focus on patient face and clinical signs. No text, no watermarks, no caption, no logos.';
+
+// PAT-focused suffix: emphasise the patient's clinical appearance (Pediatric Assessment Triangle)
+const PAT = ' The photograph must focus clearly on the patient and their clinical appearance for EMT / paramedic pediatric assessment education, showing skin color, breathing effort and body tone. Respectful, ethical, clinically accurate educational reference. Taiwanese ethnicity, authentic East-Asian features, photorealistic, soft even clinical lighting, no text, no watermarks, no logos.';
+// Manikin fallback suffix (used only if the realistic prompt is moderation-blocked)
+const PATM = ' Clearly a medical training manikin / simulation doll, not a real child. Respectful educational reference. Photorealistic, soft even lighting, no text, no watermarks, no logos.';
 
 const PROMPTS = [
   // ============ Case 1 — 3yo seizure ============
@@ -71,27 +78,27 @@ const PROMPTS = [
     'Educational medical simulation photograph: a 6-year-old Taiwanese boy on a stretcher showing severe deterioration in asthma exacerbation toward respiratory failure. Extremely drowsy, eyes half-closed and unfocused, head tilted slightly back. A pediatric BVM bag-valve mask is being held over his face by a paramedic\'s gloved hand (only hand visible at frame edge). Very pale exhausted appearance. He is no longer using accessory respiratory muscles because he is now too exhausted. Arms limp at sides. Urgent EMS atmosphere.' + COMMON
   },
 
-  // ============ Case 5 — 5yo myocarditis → OHCA ============
-  { file: 'c5-s1.jpg', prompt:
-    'A warm candid photograph of a father sitting on a living-room sofa with his young son (about 5 years old) resting against his side, the father looking down at him with a caring expression, one arm around the child. A first-aid kit and an oxygen tank sit on the floor nearby. Bright cozy home, daytime, soft natural light. Reassuring domestic first-aid training reference. Taiwanese ethnicity, authentic East-Asian features, photorealistic, no text, no watermarks.'
-  },
-  { file: 'c5-s3.jpg', prompt:
-    'Close-up photograph of a ZOLL-style defibrillator monitor screen during a pediatric emergency, the screen showing a chaotic ventricular fibrillation waveform and red alarm indicators, defibrillation pads cable visible. Blurred out-of-focus background of paramedics in uniform working. Ambulance interior with red and blue light reflections. Cinematic professional medical photography, photorealistic, no readable text overlay, no watermarks.'
-  },
-  { file: 'c5-s5.jpg', prompt:
-    'Close-up photograph of a ZOLL-style patient monitor screen after successful resuscitation, showing a restored organized sinus-tachycardia ECG waveform, a green SpO2 pleth trace, and a blood pressure reading, with calmer green indicators (no red alarms). Blurred out-of-focus ambulance interior background with warm lighting. Cinematic professional medical photography, photorealistic, no readable text overlay, no watermarks.'
-  },
+  // ============ Case 5 — 5yo myocarditis → OHCA (PAT-focused) ============
+  { file: 'c5-s1.jpg',
+    prompt: 'Clinical training reference photograph for EMT pediatric assessment (Pediatric Assessment Triangle). A 5-year-old Taiwanese boy sitting semi-reclined on a home sofa in decompensated shock. APPEARANCE: lethargic and weak, dull half-open eyes with poor engagement, head resting back. WORK OF BREATHING: fast shallow breathing with visible nasal flaring and mild intercostal / subcostal retractions on a thin bare chest. CIRCULATION TO SKIN: pale, faintly mottled skin with dusky grey-blue lips and fingertips. Clear upper-body view emphasising skin color and breathing effort.' + PAT,
+    fallback: 'Clinical training reference photograph of a high-fidelity pediatric medical simulation manikin (lifelike training doll) representing a 5-year-old child in shock, semi-reclined, with pale mottled molded skin, dusky lips, bare chest showing intercostal retractions. Educational Pediatric Assessment Triangle reference.' + PATM },
+  { file: 'c5-s3.jpg',
+    prompt: 'Clinical training reference photograph for pediatric CPR education. A 5-year-old Taiwanese boy lying supine and completely motionless on the floor, unresponsive. APPEARANCE: limp, eyes closed, no movement or tone. WORK OF BREATHING: no chest movement (apnoea). CIRCULATION TO SKIN: pale grey skin with markedly cyanotic deep-blue lips. Defibrillation pads on the bare chest. Educational resuscitation scene.' + PAT,
+    fallback: 'Clinical training reference photograph of a high-fidelity pediatric CPR simulation manikin (lifelike training doll) of a 5-year-old, lying supine and motionless, molded cyanotic blue lips and pale grey skin, defibrillation training pads on the chest. Educational resuscitation training reference.' + PATM },
+  { file: 'c5-s5.jpg',
+    prompt: 'Clinical training reference photograph. A 5-year-old Taiwanese boy lying on an ambulance stretcher after resuscitation, unconscious but perfusing again. APPEARANCE: limp and unresponsive, eyes closed. CIRCULATION TO SKIN: skin color recovering from grey toward pink. A gloved hand supports ventilation with a bag-valve mask over the face. Upper-body clinical view.' + PAT,
+    fallback: 'Clinical training reference photograph of a high-fidelity pediatric simulation manikin (lifelike training doll) of a 5-year-old on a stretcher post-resuscitation, molded skin color recovering toward pink, a gloved hand holding a bag-valve mask over the face. Educational training reference.' + PATM },
 
-  // ============ Case 6 — 11mo infant drowning OHCA ============
-  { file: 'c6-s1.jpg', prompt:
-    'Close-up photograph of a small infant-size cardiac monitor / AED screen during a pediatric emergency, screen showing a flat asystole line with a red alarm banner, AED electrode pads cable visible. Blurred background of paramedics in uniform and a wet towel on a stretcher. Home bathroom doorway visible, soft daytime light. Cinematic professional medical photography, photorealistic, no readable text overlay, no watermarks.'
-  },
-  { file: 'c6-s3.jpg', prompt:
-    'Educational medical training photograph focused on equipment and gloved hands: an intraosseous (IO) needle placed in the proximal tibia of an infant-size training manikin leg on a stretcher, a paramedic gloved hand holding a small syringe of medication, infant resuscitation equipment laid out. Bright ambulance interior. Clinical, respectful, professional training reference. Photorealistic, no text, no watermarks.'
-  },
-  { file: 'c6-s4.jpg', prompt:
-    'Close-up photograph of an infant-size patient monitor screen inside an ambulance showing a slow heart rate reading around 25 bpm with a bradycardia alarm, a low SpO2 value, and a slow ECG trace. In the soft-focus foreground a folded silver-and-white warming blanket and a small oxygen mask rest on a padded infant stretcher. Warm ambulance interior lighting. Cinematic professional medical photography, photorealistic, no readable text overlay, no watermarks.'
-  },
+  // ============ Case 6 — 11mo infant drowning OHCA (PAT-focused) ============
+  { file: 'c6-s1.jpg',
+    prompt: 'Clinical training reference photograph for infant assessment (Pediatric Assessment Triangle). An 11-month-old Taiwanese baby boy lying supine on a firm surface, unresponsive after a drowning. APPEARANCE: limp, no movement, eyes closed, absent tone. WORK OF BREATHING: no chest or abdominal movement (apnoea). CIRCULATION TO SKIN: diffuse blue-grey cyanosis of the face, lips and torso, skin wet. Clear view of the infant emphasising the cyanotic skin color.' + PAT,
+    fallback: 'Clinical training reference photograph of a high-fidelity infant CPR simulation manikin (lifelike baby training doll), 11-month size, lying supine and motionless with molded diffuse blue-grey cyanosis and wet-looking skin. Educational infant Pediatric Assessment Triangle reference.' + PATM },
+  { file: 'c6-s3.jpg',
+    prompt: 'Clinical training reference photograph. An 11-month-old Taiwanese baby boy on a stretcher during resuscitation: limp, eyes closed, pale blue-grey cyanotic skin. An intraosseous needle is placed in the proximal tibia of the lower leg and a gloved hand gives medication by syringe. Clear view showing the infant\'s skin color and the IO site.' + PAT,
+    fallback: 'Clinical training reference photograph of a high-fidelity infant simulation manikin (lifelike baby training doll) on a stretcher, molded cyanotic skin, with an intraosseous training needle in the proximal tibia and a gloved hand giving medication by syringe. Educational resuscitation training reference.' + PATM },
+  { file: 'c6-s4.jpg',
+    prompt: 'Clinical training reference photograph. An 11-month-old Taiwanese baby boy on a stretcher after return of circulation but still critically ill. APPEARANCE: limp and drowsy, eyes barely open. WORK OF BREATHING: slow shallow breathing. CIRCULATION TO SKIN: pale skin with a faint bluish tinge, wrapped in a silver warming blanket, a small oxygen mask over the face. Clear view of the infant\'s skin color.' + PAT,
+    fallback: 'Clinical training reference photograph of a high-fidelity infant simulation manikin (lifelike baby training doll) on a stretcher, molded pale skin with faint bluish tinge, wrapped in a silver warming blanket, small oxygen mask over the face. Educational post-resuscitation training reference.' + PATM },
 ];
 
 async function generate(prompt) {
@@ -112,7 +119,12 @@ async function generate(prompt) {
     }),
   });
   const text = await resp.text();
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${text.slice(0, 500)}`);
+  if (!resp.ok) {
+    const blocked = /moderation_blocked|safety system/i.test(text);
+    const err = new Error(`HTTP ${resp.status}: ${text.slice(0, 300)}`);
+    err.moderationBlocked = blocked;
+    throw err;
+  }
   const json = JSON.parse(text);
   if (!json.data?.[0]?.b64_json) throw new Error(`No image in response: ${text.slice(0, 300)}`);
   return Buffer.from(json.data[0].b64_json, 'base64');
@@ -128,7 +140,8 @@ if (onlyFile && targets.length === 0) {
 
 (async () => {
   let ok = 0, fail = 0;
-  for (const { file, prompt } of targets) {
+  for (const entry of targets) {
+    const { file, prompt, fallback } = entry;
     const outPath = path.join(OUT_DIR, file);
     if (!onlyFile && fs.existsSync(outPath)) {
       console.log(`⊙ ${file}  (skip, exists)`);
@@ -137,7 +150,18 @@ if (onlyFile && targets.length === 0) {
     process.stdout.write(`→ ${file}  ...  `);
     const t0 = Date.now();
     try {
-      const buf = await generate(prompt);
+      let buf;
+      try {
+        buf = await generate(prompt);
+      } catch (e) {
+        if (e.moderationBlocked && fallback) {
+          process.stdout.write(`(blocked → manikin fallback) `);
+          await new Promise(r => setTimeout(r, 800));
+          buf = await generate(fallback);
+        } else {
+          throw e;
+        }
+      }
       fs.writeFileSync(outPath, buf);
       const sz = (buf.length / 1024).toFixed(0);
       const dt = ((Date.now() - t0) / 1000).toFixed(1);

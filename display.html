@@ -86,67 +86,101 @@
     text-shadow: 0 0 4px #000;
     z-index: 2;
   }
-  .waveform-label.green { color: #4f5; }
-  .waveform-label.cyan { color: #4ee; }
-  .waveform-label.yellow { color: #fc4; }
+  /* Zoll-style waveform label: small filled badge in the wave color */
+  .waveform-label {
+    color: #000;
+    background: #4f5;
+    padding: 1px 7px;
+    border-radius: 2px;
+    text-shadow: none;
+  }
+  .waveform-label .scale {
+    background: none;
+    color: #cfcfcf;
+    font-weight: normal;
+    margin-left: 6px;
+    text-shadow: 0 0 4px #000;
+  }
+  .waveform-label.green  { background: #35e04a; }
+  .waveform-label.cyan   { background: #45d6e6; }
+  .waveform-label.yellow { background: #d8d24d; }
+  .waveform-label.purple { background: #9a86ff; }
 
+  /* Zoll-style numeric box: colored header bar + big color-matched number */
   .numeric-box {
+    --c: #35e04a;
     border-left: 1px solid #1a1a1a;
-    padding: 4px 10px;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    text-align: right;
+    background: #000;
     overflow: hidden;
   }
-  .numeric-box .row1 {
-    font-size: 11px;
-    font-weight: bold;
-    letter-spacing: 0.5px;
-    text-align: left;
+  .numeric-box .nb-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    background: var(--c);
+    color: #041008;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    padding: 1px 8px 2px;
+    line-height: 1.25;
   }
-  .numeric-box .row1 .units {
+  .numeric-box .nb-head .units {
     font-size: 10px;
-    color: #888;
-    margin-left: 4px;
+    font-weight: 700;
+    opacity: 0.72;
   }
   .numeric-box .value {
-    font-size: 64px;
+    color: var(--c);
+    font-size: 60px;
     font-weight: 700;
     line-height: 0.95;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     letter-spacing: -3px;
+    text-align: right;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 10px;
+    min-height: 0;
   }
   .numeric-box .sub {
+    color: #9aa0ac;
     font-size: 11px;
-    color: #aaa;
-    margin-top: 2px;
-    text-align: left;
+    text-align: right;
+    padding: 0 10px 3px;
   }
-  .numeric-box.green { color: #4f5; }
-  .numeric-box.cyan  { color: #4ee; }
-  .numeric-box.yellow{ color: #fc4; }
-  .numeric-box.white { color: #fff; }
-  .numeric-box.orange{ color: #f93; }
-  .numeric-box.red   { color: #f44; }
+  .numeric-box .sub b { color: var(--c); font-weight: 700; }
+  .numeric-box.green  { --c: #35e04a; }
+  .numeric-box.cyan   { --c: #45d6e6; }
+  .numeric-box.yellow { --c: #d8d24d; }
+  .numeric-box.purple { --c: #9a86ff; }
+  .numeric-box.white  { --c: #e2e6ec; }
+  .numeric-box.orange { --c: #f0a044; }
+  .numeric-box.red    { --c: #f44; }
 
   .extra-numerics {
     display: flex;
     border-top: 1px solid #1a1a1a;
-    background: #050505;
+    background: #000;
     height: 96px;
     flex: 0 0 auto;
   }
   .extra-numerics .numeric-box {
     flex: 1 1 0;
-    text-align: left;
-    padding: 6px 10px;
     min-width: 0;
   }
   .extra-numerics .numeric-box:first-child { border-left: none; }
-  .extra-numerics .numeric-box .value { font-size: 36px; }
+  .extra-numerics .numeric-box .value { font-size: 38px; }
 
-  /* Alarms */
+  /* Alarms: header bar turns red and blinks */
+  .numeric-box.alarm-high { --c: #ff4d4d; }
+  .numeric-box.alarm-high .nb-head { animation: alarmBlink 1s infinite; }
+  .numeric-box.alarm-high .value { animation: alarmBlink 1s infinite; }
   .alarm-high {
     color: #f44 !important;
     animation: alarmBlink 1s infinite;
@@ -449,51 +483,50 @@
 
     <div class="waveform-row" id="row-ecg">
       <div class="waveform-canvas-wrap">
-        <div class="waveform-label green">II · 6s</div>
+        <div class="waveform-label green">II<span class="scale">1.0 cm/mV</span></div>
         <canvas id="cv-ecg"></canvas>
       </div>
       <div class="numeric-box green">
-        <div class="row1">HR<span class="units">bpm</span></div>
+        <div class="nb-head">HR<span class="units">bpm</span></div>
         <div class="value" id="v-hr">75</div>
       </div>
     </div>
 
     <div class="waveform-row" id="row-spo2">
       <div class="waveform-canvas-wrap">
-        <div class="waveform-label cyan">PLETH</div>
+        <div class="waveform-label yellow">SpO₂<span class="scale">1 x</span></div>
         <canvas id="cv-spo2"></canvas>
       </div>
-      <div class="numeric-box cyan">
-        <div class="row1">SpO₂<span class="units">%</span></div>
+      <div class="numeric-box yellow">
+        <div class="nb-head">SpO₂<span class="units">%</span></div>
         <div class="value" id="v-spo2">98</div>
-        <div class="sub">PI <span id="v-pi">2.1</span></div>
+        <div class="sub">PI <b id="v-pi">2.1</b></div>
       </div>
     </div>
 
     <div class="waveform-row" id="row-co2">
       <div class="waveform-canvas-wrap">
-        <div class="waveform-label yellow">CO₂</div>
+        <div class="waveform-label purple">CO₂<span class="scale">0 to 60 mmHg</span></div>
         <canvas id="cv-co2"></canvas>
       </div>
-      <div class="numeric-box yellow">
-        <div class="row1">EtCO₂<span class="units">mmHg</span></div>
+      <div class="numeric-box purple">
+        <div class="nb-head">EtCO₂<span class="units">mmHg</span></div>
         <div class="value" id="v-etco2">38</div>
       </div>
     </div>
 
     <div class="extra-numerics" id="extra-row">
-      <div class="numeric-box white" id="box-nibp">
-        <div class="row1">NIBP<span class="units">mmHg</span></div>
+      <div class="numeric-box cyan" id="box-nibp">
+        <div class="nb-head">NIBP<span class="units">mmHg</span></div>
         <div class="value"><span id="v-sbp">128</span>/<span id="v-dbp">82</span></div>
-        <div class="sub">MAP <span id="v-map">97</span> · <span id="v-bptime">手動</span></div>
+        <div class="sub">(<b id="v-map">97</b>) · <span id="v-bptime">手動</span></div>
       </div>
-      <div class="numeric-box yellow" id="box-rr">
-        <div class="row1">RR<span class="units">/min</span></div>
+      <div class="numeric-box purple" id="box-rr">
+        <div class="nb-head">BR<span class="units">/min</span></div>
         <div class="value" id="v-rr">16</div>
-        <div class="sub">監測</div>
       </div>
-      <div class="numeric-box orange" id="box-temp">
-        <div class="row1">Temp<span class="units">°C</span></div>
+      <div class="numeric-box cyan" id="box-temp">
+        <div class="nb-head">Temp<span class="units">°C</span></div>
         <div class="value" id="v-temp">36.7</div>
         <div class="sub" id="v-tempsite">耳溫</div>
       </div>
@@ -854,13 +887,15 @@ function setupCanvas(canvas) {
 }
 
 class Waveform {
-  constructor({ canvas, color, secondsPerSweep, range, getValue, gridColor }) {
+  constructor({ canvas, color, secondsPerSweep, range, getValue, gridColor, fill, fillColor }) {
     this.canvas = canvas;
     const setup = setupCanvas(canvas);
     this.ctx = setup.ctx;
     this.w = setup.w;
     this.h = setup.h;
     this.color = color;
+    this.fill = !!fill;
+    this.fillColor = fillColor || null;
     this.gridColor = gridColor || 'rgba(255,255,255,0.04)';
     this.secondsPerSweep = secondsPerSweep;
     this.pps = this.w / secondsPerSweep;
@@ -928,6 +963,18 @@ class Waveform {
       ctx.lineWidth = 0.5;
       // (skip grid redraw for perf)
 
+      // Filled area under the curve (capnograph style)
+      if (this.fill && this.prevX >= 0 && Math.abs(x - this.prevX) <= 1) {
+        ctx.fillStyle = this.fillColor || 'rgba(154,134,255,0.35)';
+        ctx.beginPath();
+        ctx.moveTo(this.prevX + 0.5, this.prevY);
+        ctx.lineTo(x + 0.5, y);
+        ctx.lineTo(x + 0.5, h);
+        ctx.lineTo(this.prevX + 0.5, h);
+        ctx.closePath();
+        ctx.fill();
+      }
+
       // Draw line
       ctx.strokeStyle = this.color;
       ctx.lineWidth = 1.6;
@@ -965,17 +1012,19 @@ function buildWaveforms() {
     }),
     new Waveform({
       canvas: document.getElementById('cv-spo2'),
-      color: '#44eeee',
+      color: '#e8e24a',
       secondsPerSweep: SWEEP_SECONDS,
       range: [-0.2, 1.4],
       getValue: (t) => plethValueAt(t),
     }),
     new Waveform({
       canvas: document.getElementById('cv-co2'),
-      color: '#ffcc44',
+      color: '#b6a6ff',
       secondsPerSweep: SWEEP_SECONDS,
       range: [-2, 60],
       getValue: (t) => co2ValueAt(t),
+      fill: true,
+      fillColor: 'rgba(120,96,220,0.45)',
     }),
   ];
 }
@@ -1206,12 +1255,12 @@ function updateNumerics() {
   document.getElementById('hdr-patient').textContent =
     `${state.patient.name || '--'}  ${state.patient.age||'--'}${state.patient.sex==='F'?'♀':'♂'} ${state.patient.weight||'--'}kg`;
 
-  // Alarms
-  const hrBox = document.querySelector('.numeric-box.green');
+  // Alarms (target boxes via their value element so palette changes don't break them)
+  const hrBox = document.getElementById('v-hr').closest('.numeric-box');
   hrBox.classList.toggle('alarm-high', !state.pulseless && (state.vitals.hr < 40 || state.vitals.hr > 140));
-  const spo2Box = document.querySelector('.numeric-box.cyan');
+  const spo2Box = document.getElementById('v-spo2').closest('.numeric-box');
   spo2Box.classList.toggle('alarm-high', !state.pulseless && state.vitals.spo2 < 90);
-  const co2Box = document.querySelector('.numeric-box.yellow');
+  const co2Box = document.getElementById('v-etco2').closest('.numeric-box');
   co2Box.classList.toggle('alarm-high', !state.pulseless && (state.vitals.etco2 < 25 || state.vitals.etco2 > 50));
 
   document.getElementById('cpr-indicator').classList.toggle('active', !!state.cpr);
