@@ -70,6 +70,28 @@ const PROMPTS = [
   { file: 'c4-s4.jpg', prompt:
     'Educational medical simulation photograph: a 6-year-old Taiwanese boy on a stretcher showing severe deterioration in asthma exacerbation toward respiratory failure. Extremely drowsy, eyes half-closed and unfocused, head tilted slightly back. A pediatric BVM bag-valve mask is being held over his face by a paramedic\'s gloved hand (only hand visible at frame edge). Very pale exhausted appearance. He is no longer using accessory respiratory muscles because he is now too exhausted. Arms limp at sides. Urgent EMS atmosphere.' + COMMON
   },
+
+  // ============ Case 5 — 5yo myocarditis → OHCA ============
+  { file: 'c5-s1.jpg', prompt:
+    'A calm photograph of a 5-year-old Taiwanese boy sitting on a home sofa wearing a pediatric oxygen mask, resting quietly, a caring father sitting beside him with a hand on his shoulder. Bright home living room, daytime, warm lighting. Reassuring domestic scene for a first-aid training reference. Taiwanese ethnicity, authentic East-Asian features, photorealistic, no text, no watermarks.'
+  },
+  { file: 'c5-s3.jpg', prompt:
+    'Close-up photograph of a ZOLL-style defibrillator monitor screen during a pediatric emergency, the screen showing a chaotic ventricular fibrillation waveform and red alarm indicators, defibrillation pads cable visible. Blurred out-of-focus background of paramedics in uniform working. Ambulance interior with red and blue light reflections. Cinematic professional medical photography, photorealistic, no readable text overlay, no watermarks.'
+  },
+  { file: 'c5-s5.jpg', prompt:
+    'A calm photograph of a 5-year-old Taiwanese boy resting with eyes closed on an ambulance stretcher, wrapped warmly, cardiac monitor sticker leads on the chest and a small oxygen mask over the face, a cardiac monitor screen visible in the background. Soft ambulance interior lighting, quiet reassuring atmosphere. Taiwanese ethnicity, authentic East-Asian features, photorealistic training reference, no text, no watermarks.'
+  },
+
+  // ============ Case 6 — 11mo infant drowning OHCA ============
+  { file: 'c6-s1.jpg', prompt:
+    'Close-up photograph of a small infant-size cardiac monitor / AED screen during a pediatric emergency, screen showing a flat asystole line with a red alarm banner, AED electrode pads cable visible. Blurred background of paramedics in uniform and a wet towel on a stretcher. Home bathroom doorway visible, soft daytime light. Cinematic professional medical photography, photorealistic, no readable text overlay, no watermarks.'
+  },
+  { file: 'c6-s3.jpg', prompt:
+    'Educational medical training photograph focused on equipment and gloved hands: an intraosseous (IO) needle placed in the proximal tibia of an infant-size training manikin leg on a stretcher, a paramedic gloved hand holding a small syringe of medication, infant resuscitation equipment laid out. Bright ambulance interior. Clinical, respectful, professional training reference. Photorealistic, no text, no watermarks.'
+  },
+  { file: 'c6-s4.jpg', prompt:
+    'A gentle calm photograph of an 11-month-old Taiwanese baby boy sleeping peacefully wrapped in soft warm blankets on a padded stretcher inside an ambulance, a small infant oxygen mask resting gently over nose and mouth, a few cardiac monitor sticker leads on the chest, warming blanket emphasized. Soft warm interior lighting, tender reassuring atmosphere. Taiwanese ethnicity infant features, photorealistic training reference, no text, no watermarks.'
+  },
 ];
 
 async function generate(prompt) {
@@ -80,11 +102,11 @@ async function generate(prompt) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-image-1',
+      model: 'gpt-image-2',
       prompt: prompt,
       n: 1,
       size: '1024x1024',
-      quality: 'high',
+      quality: 'medium',
       output_format: 'jpeg',
       output_compression: 88,
     }),

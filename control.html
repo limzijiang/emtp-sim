@@ -830,10 +830,7 @@
       <div class="section">
         <h3>選擇教案</h3>
         <select id="case-selector" onchange="selectCase(this.value)" style="width:100%; background:#0d1117; border:1px solid #30363d; color:#c9d1d9; padding:10px; border-radius:6px; font-size:14px;">
-          <option value="0">教案 1 · 3 歲男童癲癇重積</option>
-          <option value="1">教案 2 · 10 個月嬰兒兒虐 IICP → OHCA</option>
-          <option value="2">教案 3 · 10 歲蜂螫過敏性休克</option>
-          <option value="3">教案 4 · 6 歲急性氣喘</option>
+          <!-- options built dynamically (grouped by 教案分組) -->
         </select>
       </div>
 
@@ -1493,6 +1490,7 @@ window.copyDisplayUrl = copyDisplayUrl;
 const CASES = [
   {
     id: 'seizure',
+    group: '非創',
     title: '教案 1 · 3 歲男童癲癇重積狀態',
     summary: '<strong>3 歲 / 15 kg 男童</strong>，已知癲癇 (停 Levetiracetam 2 週)。<br>家屬報案：突發 GTC 抽搐持續 <strong>7 分鐘未停</strong>，曾嘔吐、口吐白沫。',
     patient: {
@@ -1527,6 +1525,7 @@ const CASES = [
   },
   {
     id: 'aht_iicp',
+    group: '非創',
     title: '教案 2 · 10 個月嬰兒兒虐 IICP → 緩脈 → OHCA',
     summary: '<strong>10 個月男嬰 / 10 kg</strong>。下午 1 點，家屬發現在床上昏睡叫不醒、呼吸慢。<br>瞳孔不等大、前囟門凸出 → 懷疑兒虐顱內出血合併 IICP。',
     patient: {
@@ -1557,6 +1556,7 @@ const CASES = [
   },
   {
     id: 'anaphylaxis',
+    group: '非創',
     title: '教案 3 · 10 歲蜂螫過敏性休克 + 喉頭水腫',
     summary: '<strong>10 歲男童 / 30 kg</strong>，戶外攻擊蜂窩遭蜂螫。<br>Stridor、胸腹蕁麻疹、眼周水腫、BP 60/40。山區距醫院 30 分鐘。',
     patient: {
@@ -1587,6 +1587,7 @@ const CASES = [
   },
   {
     id: 'asthma',
+    group: '非創',
     title: '教案 4 · 6 歲急性氣喘發作',
     summary: '<strong>6 歲男童 / 20 kg</strong>。冬季 12°C，國小體育課踢足球後突發呼吸喘 + wheezing。<br>休息 15 分鐘未緩解，校護初評後 EMT/EMTP 到場。',
     patient: {
@@ -1613,6 +1614,72 @@ const CASES = [
         summary: '⚠️ 嗜睡、呼吸音變弱、SpO₂ <88% → BVM + ALS',
         vitals: { hr: 100, sbp: 86, dbp: 55, spo2: 82, pi: 0.8, rr: 18, etco2: 60, temp: 36.0, tempSite: '耳溫' },
         rhythm: 'STach', pulseless: false, cpr: false },
+    ],
+  },
+  {
+    id: 'myocarditis_ohca',
+    group: 'PBLS/OHCA',
+    title: '教案 5 · 5 歲疑心肌炎 → OHCA (VF)',
+    summary: '<strong>5 歲男童 / 20 kg</strong>。高燒 6 天，今日胸悶、走幾步就喘、手腳腫。<br>失償性休克 → 次評中惡化為 <strong>OHCA (頑固型 VF)</strong>，PALS 流程。',
+    patient: {
+      name: '小翔 (案例 5)', age: 5, sex: 'M', weight: 20,
+      cc: '高燒 6 天，今日胸悶、走路喘、四肢水腫',
+      pmh: '無 (診所診斷感冒)',
+      allergy: 'NKDA',
+      meds: '診所退燒藥',
+    },
+    segments: [
+      { label: '① 到場：失償性休克', image: 'images/c5-s1.jpg', style: 'warn',
+        summary: 'HR170 BP70/40 SpO₂86(RA) CRT4s 四肢冰冷蒼白，血糖80',
+        vitals: { hr: 170, sbp: 70, dbp: 40, spo2: 86, pi: 0.6, rr: 30, etco2: 34, temp: 39.5, tempSite: '耳溫' },
+        rhythm: 'STach', pulseless: false, cpr: false },
+      { label: '② NRM + N/S 5–10mL/kg 後暫穩',
+        summary: 'NRM 後 SpO₂→95%，仍 shock；監測是否惡化 (勿過度灌水)',
+        vitals: { hr: 170, sbp: 75, dbp: 45, spo2: 95, pi: 0.9, rr: 30, etco2: 34, temp: 39.5, tempSite: '耳溫' },
+        rhythm: 'STach', pulseless: false, cpr: false },
+      { label: '③ 次評中惡化 → OHCA (VF)', image: 'images/c5-s3.jpg', style: 'warn',
+        summary: '瀕死呼吸、頸動脈摸不到、VF → 去顫 2J/kg + 高品質 CPR',
+        vitals: { hr: 170, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 15, temp: 39.0, tempSite: '耳溫' },
+        rhythm: 'VF', pulseless: true, cpr: true },
+      { label: '④ 頑固型 VF：電擊 + Epi + Amiodarone', style: 'warn',
+        summary: '4J/kg→最大10J/kg；Epi q3–5min；Amiodarone 5mg/kg 第3次電擊後',
+        vitals: { hr: 0, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 18, temp: 38.8, tempSite: '耳溫' },
+        rhythm: 'VF', pulseless: true, cpr: true },
+      { label: '⑤ ROSC (疑心衰竭)', image: 'images/c5-s5.jpg', style: 'good',
+        summary: 'GCS3 瞳孔4+/4+ 頸靜脈怒張 肺濕囉音 → 關輸液、TTM',
+        vitals: { hr: 165, sbp: 80, dbp: 50, spo2: 95, pi: 1.2, rr: 6, etco2: 35, temp: 38.3, tempSite: '耳溫' },
+        rhythm: 'STach', pulseless: false, cpr: false },
+    ],
+  },
+  {
+    id: 'drowning_ohca',
+    group: 'PBLS/OHCA',
+    title: '教案 6 · 11 月齡嬰兒溺水 OHCA (Asystole)',
+    summary: '<strong>11 月齡男嬰 / 10 kg</strong>。保母離開約 5 分鐘，返回發現趴臥浴缸、叫不醒。<br><strong>心肺停止 (Asystole，不可電擊)</strong>；PBLS/PALS + 低體溫矯正。',
+    patient: {
+      name: '小海 (案例 6)', age: 1, sex: 'M', weight: 10,
+      cc: '滑落浴缸後意識不清、無呼吸',
+      pmh: '無先天病史',
+      allergy: 'NKDA',
+      meds: '無',
+    },
+    segments: [
+      { label: '① 到場：心肺停止 (Asystole)', image: 'images/c6-s1.jpg', style: 'warn',
+        summary: 'GCS E1V1M1、發紺、肱動脈摸不到 → 15:2 CPR + AED(不建議電擊)',
+        vitals: { hr: 0, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 10, temp: 34.0, tempSite: '核心' },
+        rhythm: 'Asystole', pulseless: true, cpr: true },
+      { label: '② 雙人 15:2 CPR + BVM (Asystole 持續)', style: 'warn',
+        summary: '墊肩擺位、雙拇環抱壓胸深度4cm；請求第二台車',
+        vitals: { hr: 0, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 12, temp: 34.0, tempSite: '核心' },
+        rhythm: 'Asystole', pulseless: true, cpr: true },
+      { label: '③ IO + Epinephrine (由 EMTP)', image: 'images/c6-s3.jpg', style: 'warn',
+        summary: 'IO 脛骨近端；Epi 0.1mg IO q3–5min；血糖78、體溫34需保暖',
+        vitals: { hr: 0, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 14, temp: 34.0, tempSite: '核心' },
+        rhythm: 'Asystole', pulseless: true, cpr: true },
+      { label: '④ 送醫途中 ROSC 但 HR<60', image: 'images/c6-s4.jpg', style: 'good',
+        summary: '肱動脈脈搏25<60 併 shock signs → 持續 CPR + BVM + Epi',
+        vitals: { hr: 25, sbp: 60, dbp: 45, spo2: 82, pi: 0.5, rr: 6, etco2: 20, temp: 34.0, tempSite: '核心' },
+        rhythm: 'SBrady', pulseless: false, cpr: true },
     ],
   },
 ];
@@ -1651,6 +1718,23 @@ function segVitalsLine(seg) {
   if (seg.pulseless) parts.push('PULSELESS');
   if (seg.cpr) parts.push('CPR');
   return parts.join(' · ');
+}
+
+function buildCaseSelector() {
+  const sel = document.getElementById('case-selector');
+  // group cases by their `group` field, preserving first-seen order
+  const groups = [];
+  CASES.forEach((c, i) => {
+    const gname = c.group || '其他';
+    let g = groups.find(x => x.name === gname);
+    if (!g) { g = { name: gname, items: [] }; groups.push(g); }
+    g.items.push({ idx: i, title: c.title });
+  });
+  sel.innerHTML = groups.map(g =>
+    `<optgroup label="${escapeForAttr(g.name)}">` +
+    g.items.map(it => `<option value="${it.idx}">${escapeForAttr(it.title)}</option>`).join('') +
+    `</optgroup>`
+  ).join('');
 }
 
 function renderCaseUI() {
@@ -1818,6 +1902,7 @@ function syncUIFromState() {
   updatePatientPreviews();
   syncToggles();
 }
+buildCaseSelector();
 renderCaseUI();
 syncUIFromState();
 </script>

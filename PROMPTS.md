@@ -1,8 +1,13 @@
 # 病人圖片生成 Prompts
 
-每個 vital sign 套組對應一張病人狀態圖片。共 **17 張**，依以下命名存到 `images/` 資料夾，commit 後系統會自動載入。
+每個 vital sign 套組對應一張病人狀態圖片，依以下命名存到 `images/` 資料夾，commit 後系統會自動載入。
 
-## 使用方式
+> 本專案圖片以 `generate_images.js` 透過 OpenAI **`gpt-image-2`** (GPT Image 2.0) API 批次生成。
+> 執行：`node generate_images.js`（跳過已存在的檔）或 `node generate_images.js c5-s1.jpg`（單張）。
+> 命名對照：`c1`–`c4` = 非創組 4 案，`c5` = 心肌炎→OHCA，`c6` = 嬰兒溺水 OHCA。
+> 涉及重症/OHCA 兒童的畫面常被 output moderation 擋，需用「平靜擺拍 / 訓練情境 / 器材特寫」等中性框架改寫。
+
+## 使用方式（手動改用 ChatGPT 時）
 
 1. 打開 ChatGPT (需 Plus 帳號才能用 GPT Image 2.0) 或 Sora / Midjourney / DALL-E
 2. 把下方每個 prompt 貼入，生成方形 / 直式照片
