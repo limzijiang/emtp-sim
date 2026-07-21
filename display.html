@@ -499,10 +499,6 @@
           <div class="waveform-label green">II<span class="scale">1.0 cm/mV</span></div>
           <canvas id="cv-ecg"></canvas>
         </div>
-        <div class="wave" id="row-ecg2">
-          <div class="waveform-label green">aVF<span class="scale">1.0 cm/mV</span></div>
-          <canvas id="cv-ecg2"></canvas>
-        </div>
         <div class="wave" id="row-spo2">
           <div class="waveform-label yellow">SpO₂<span class="scale">1 x</span></div>
           <canvas id="cv-spo2"></canvas>
@@ -523,15 +519,15 @@
           <div class="value stacked"><span id="v-sbp">128</span><span id="v-dbp">82</span></div>
           <div class="sub">(<b id="v-map">97</b>) · <span id="v-bptime">手動</span></div>
         </div>
-        <div class="numeric-box purple" id="box-etco2">
-          <div class="nb-head">EtCO₂<span class="units">mmHg</span></div>
-          <div class="value" id="v-etco2">38</div>
-          <div class="sub" id="sub-br">BR <b id="v-rr">16</b></div>
-        </div>
         <div class="numeric-box yellow" id="box-spo2">
           <div class="nb-head">SpO₂<span class="units">%</span></div>
           <div class="value" id="v-spo2">98</div>
           <div class="sub">PI <b id="v-pi">2.1</b></div>
+        </div>
+        <div class="numeric-box purple" id="box-etco2">
+          <div class="nb-head">EtCO₂<span class="units">mmHg</span></div>
+          <div class="value" id="v-etco2">38</div>
+          <div class="sub" id="sub-br">BR <b id="v-rr">16</b></div>
         </div>
         <div class="numeric-box cyan" id="box-temp">
           <div class="nb-head">Temp<span class="units">°C</span></div>
@@ -1020,13 +1016,6 @@ function buildWaveforms() {
       getValue: (t) => ecgValueAt(t, 'II'),
     }),
     new Waveform({
-      canvas: document.getElementById('cv-ecg2'),
-      color: '#39ff39',
-      secondsPerSweep: SWEEP_SECONDS,
-      range: [-1.6, 2.2],
-      getValue: (t) => ecgValueAt(t, 'aVF'),
-    }),
-    new Waveform({
       canvas: document.getElementById('cv-spo2'),
       color: '#e8e24a',
       secondsPerSweep: SWEEP_SECONDS,
@@ -1241,9 +1230,8 @@ soundBtn.addEventListener('click', () => {
 // =================== Numeric & UI sync ===================
 function applyVisibility() {
   const show = state.show || { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true };
-  // ECG toggle controls both leads (II + aVF) and the HR box
+  // ECG toggle controls the Lead II waveform and the HR box
   document.getElementById('row-ecg').style.display = show.ecg ? '' : 'none';
-  document.getElementById('row-ecg2').style.display = show.ecg ? '' : 'none';
   document.getElementById('box-hr').style.display = show.ecg ? '' : 'none';
   document.getElementById('row-spo2').style.display = show.spo2 ? '' : 'none';
   document.getElementById('box-spo2').style.display = show.spo2 ? '' : 'none';
