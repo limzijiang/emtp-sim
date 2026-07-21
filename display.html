@@ -60,21 +60,35 @@
   .monitor-header .clock { font-family: 'Courier New', monospace; }
   .monitor-header .battery::before { content: '🔋 '; }
 
-  .waveform-row {
+  /* Two-column monitor body: waveforms (left) | numerics (right) — Zoll X layout */
+  .monitor-body {
     flex: 1 1 0;
     display: grid;
-    grid-template-columns: 1fr 130px;
-    border-bottom: 1px solid #1a1a1a;
-    position: relative;
+    grid-template-columns: 1fr 168px;
+    min-height: 0;
+  }
+  .waveforms-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+  .numerics-col {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #1a1a1a;
     min-height: 0;
   }
 
-  .waveform-canvas-wrap {
+  .wave {
+    flex: 1 1 0;
     position: relative;
     overflow: hidden;
     background: #000;
+    border-bottom: 1px solid #1a1a1a;
+    min-height: 0;
   }
-  .waveform-canvas-wrap canvas {
+  .wave canvas {
     width: 100%; height: 100%;
     display: block;
   }
@@ -106,16 +120,20 @@
   .waveform-label.yellow { background: #d8d24d; }
   .waveform-label.purple { background: #9a86ff; }
 
-  /* Zoll-style numeric box: colored header bar + big color-matched number */
+  /* Zoll-style numeric box: colored header bar + big color-matched number.
+     Boxes are stacked in the right-hand numerics column. */
   .numeric-box {
     --c: #35e04a;
-    border-left: 1px solid #1a1a1a;
+    flex: 1 1 0;
+    border-bottom: 1px solid #1a1a1a;
     padding: 0;
     display: flex;
     flex-direction: column;
     background: #000;
     overflow: hidden;
+    min-height: 0;
   }
+  .numerics-col .numeric-box:last-child { border-bottom: none; }
   .numeric-box .nb-head {
     display: flex;
     justify-content: space-between;
@@ -127,6 +145,7 @@
     letter-spacing: 0.3px;
     padding: 1px 8px 2px;
     line-height: 1.25;
+    flex: 0 0 auto;
   }
   .numeric-box .nb-head .units {
     font-size: 10px;
@@ -135,11 +154,11 @@
   }
   .numeric-box .value {
     color: var(--c);
-    font-size: 60px;
+    font-size: 50px;
     font-weight: 700;
-    line-height: 0.95;
+    line-height: 0.9;
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    letter-spacing: -3px;
+    letter-spacing: -2px;
     text-align: right;
     flex: 1 1 auto;
     display: flex;
@@ -148,11 +167,18 @@
     padding: 0 10px;
     min-height: 0;
   }
+  .numeric-box .value.stacked {
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    line-height: 0.92;
+  }
   .numeric-box .sub {
     color: #9aa0ac;
     font-size: 11px;
     text-align: right;
     padding: 0 10px 3px;
+    flex: 0 0 auto;
   }
   .numeric-box .sub b { color: var(--c); font-weight: 700; }
   .numeric-box.green  { --c: #35e04a; }
@@ -162,20 +188,6 @@
   .numeric-box.white  { --c: #e2e6ec; }
   .numeric-box.orange { --c: #f0a044; }
   .numeric-box.red    { --c: #f44; }
-
-  .extra-numerics {
-    display: flex;
-    border-top: 1px solid #1a1a1a;
-    background: #000;
-    height: 96px;
-    flex: 0 0 auto;
-  }
-  .extra-numerics .numeric-box {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-  .extra-numerics .numeric-box:first-child { border-left: none; }
-  .extra-numerics .numeric-box .value { font-size: 38px; }
 
   /* Alarms: header bar turns red and blinks */
   .numeric-box.alarm-high { --c: #ff4d4d; }
@@ -481,54 +493,51 @@
       <span><span class="clock" id="hdr-clock">--:--:--</span> · <span class="battery">100%</span></span>
     </div>
 
-    <div class="waveform-row" id="row-ecg">
-      <div class="waveform-canvas-wrap">
-        <div class="waveform-label green">II<span class="scale">1.0 cm/mV</span></div>
-        <canvas id="cv-ecg"></canvas>
+    <div class="monitor-body">
+      <div class="waveforms-col">
+        <div class="wave" id="row-ecg">
+          <div class="waveform-label green">II<span class="scale">1.0 cm/mV</span></div>
+          <canvas id="cv-ecg"></canvas>
+        </div>
+        <div class="wave" id="row-ecg2">
+          <div class="waveform-label green">aVF<span class="scale">1.0 cm/mV</span></div>
+          <canvas id="cv-ecg2"></canvas>
+        </div>
+        <div class="wave" id="row-spo2">
+          <div class="waveform-label yellow">SpO₂<span class="scale">1 x</span></div>
+          <canvas id="cv-spo2"></canvas>
+        </div>
+        <div class="wave" id="row-co2">
+          <div class="waveform-label purple">CO₂<span class="scale">0 to 60 mmHg</span></div>
+          <canvas id="cv-co2"></canvas>
+        </div>
       </div>
-      <div class="numeric-box green">
-        <div class="nb-head">HR<span class="units">bpm</span></div>
-        <div class="value" id="v-hr">75</div>
-      </div>
-    </div>
 
-    <div class="waveform-row" id="row-spo2">
-      <div class="waveform-canvas-wrap">
-        <div class="waveform-label yellow">SpO₂<span class="scale">1 x</span></div>
-        <canvas id="cv-spo2"></canvas>
-      </div>
-      <div class="numeric-box yellow">
-        <div class="nb-head">SpO₂<span class="units">%</span></div>
-        <div class="value" id="v-spo2">98</div>
-        <div class="sub">PI <b id="v-pi">2.1</b></div>
-      </div>
-    </div>
-
-    <div class="waveform-row" id="row-co2">
-      <div class="waveform-canvas-wrap">
-        <div class="waveform-label purple">CO₂<span class="scale">0 to 60 mmHg</span></div>
-        <canvas id="cv-co2"></canvas>
-      </div>
-      <div class="numeric-box purple">
-        <div class="nb-head">EtCO₂<span class="units">mmHg</span></div>
-        <div class="value" id="v-etco2">38</div>
-      </div>
-    </div>
-
-    <div class="extra-numerics" id="extra-row">
-      <div class="numeric-box cyan" id="box-nibp">
-        <div class="nb-head">NIBP<span class="units">mmHg</span></div>
-        <div class="value"><span id="v-sbp">128</span>/<span id="v-dbp">82</span></div>
-        <div class="sub">(<b id="v-map">97</b>) · <span id="v-bptime">手動</span></div>
-      </div>
-      <div class="numeric-box purple" id="box-rr">
-        <div class="nb-head">BR<span class="units">/min</span></div>
-        <div class="value" id="v-rr">16</div>
-      </div>
-      <div class="numeric-box cyan" id="box-temp">
-        <div class="nb-head">Temp<span class="units">°C</span></div>
-        <div class="value" id="v-temp">36.7</div>
-        <div class="sub" id="v-tempsite">耳溫</div>
+      <div class="numerics-col">
+        <div class="numeric-box green" id="box-hr">
+          <div class="nb-head">HR<span class="units">bpm</span></div>
+          <div class="value" id="v-hr">75</div>
+        </div>
+        <div class="numeric-box cyan" id="box-nibp">
+          <div class="nb-head">NIBP<span class="units">mmHg</span></div>
+          <div class="value stacked"><span id="v-sbp">128</span><span id="v-dbp">82</span></div>
+          <div class="sub">(<b id="v-map">97</b>) · <span id="v-bptime">手動</span></div>
+        </div>
+        <div class="numeric-box purple" id="box-etco2">
+          <div class="nb-head">EtCO₂<span class="units">mmHg</span></div>
+          <div class="value" id="v-etco2">38</div>
+          <div class="sub" id="sub-br">BR <b id="v-rr">16</b></div>
+        </div>
+        <div class="numeric-box yellow" id="box-spo2">
+          <div class="nb-head">SpO₂<span class="units">%</span></div>
+          <div class="value" id="v-spo2">98</div>
+          <div class="sub">PI <b id="v-pi">2.1</b></div>
+        </div>
+        <div class="numeric-box cyan" id="box-temp">
+          <div class="nb-head">Temp<span class="units">°C</span></div>
+          <div class="value" id="v-temp">36.7</div>
+          <div class="sub" id="v-tempsite">耳溫</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1011,6 +1020,13 @@ function buildWaveforms() {
       getValue: (t) => ecgValueAt(t, 'II'),
     }),
     new Waveform({
+      canvas: document.getElementById('cv-ecg2'),
+      color: '#39ff39',
+      secondsPerSweep: SWEEP_SECONDS,
+      range: [-1.6, 2.2],
+      getValue: (t) => ecgValueAt(t, 'aVF'),
+    }),
+    new Waveform({
       canvas: document.getElementById('cv-spo2'),
       color: '#e8e24a',
       secondsPerSweep: SWEEP_SECONDS,
@@ -1225,13 +1241,17 @@ soundBtn.addEventListener('click', () => {
 // =================== Numeric & UI sync ===================
 function applyVisibility() {
   const show = state.show || { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true };
+  // ECG toggle controls both leads (II + aVF) and the HR box
   document.getElementById('row-ecg').style.display = show.ecg ? '' : 'none';
+  document.getElementById('row-ecg2').style.display = show.ecg ? '' : 'none';
+  document.getElementById('box-hr').style.display = show.ecg ? '' : 'none';
   document.getElementById('row-spo2').style.display = show.spo2 ? '' : 'none';
+  document.getElementById('box-spo2').style.display = show.spo2 ? '' : 'none';
   document.getElementById('row-co2').style.display = show.co2 ? '' : 'none';
+  document.getElementById('box-etco2').style.display = show.co2 ? '' : 'none';
   document.getElementById('box-nibp').style.display = show.nibp ? '' : 'none';
-  document.getElementById('box-rr').style.display = show.rr ? '' : 'none';
+  document.getElementById('sub-br').style.display = show.rr ? '' : 'none';
   document.getElementById('box-temp').style.display = show.temp ? '' : 'none';
-  document.getElementById('extra-row').style.display = (show.nibp || show.rr || show.temp) ? '' : 'none';
   // Defer reflow then resize waveforms to fit new heights
   requestAnimationFrame(() => {
     if (typeof waveforms !== 'undefined') {
