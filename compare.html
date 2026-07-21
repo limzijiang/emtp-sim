@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Case 5/6 圖片比較 · 假人 vs 擬真</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0d1117; color: #e6edf3;
+    font-family: -apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif; padding: 24px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .hint { color: #8b949e; font-size: 13px; margin-bottom: 20px; line-height: 1.6; }
+  .case-title { font-size: 16px; color: #58a6ff; margin: 28px 0 10px; border-bottom: 1px solid #2a2f38; padding-bottom: 6px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+  .card { background: #161b22; border: 1px solid #2a2f38; border-radius: 10px; overflow: hidden; }
+  .card .seg { padding: 8px 12px; font-size: 13px; color: #c9d1d9; border-bottom: 1px solid #2a2f38; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; }
+  .pane { position: relative; }
+  .pane img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: #000; }
+  .pane .lbl { position: absolute; top: 6px; left: 6px; font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: 4px; color: #fff; }
+  .pane.manikin .lbl { background: rgba(88,166,255,0.9); }
+  .pane.real .lbl { background: rgba(63,185,80,0.9); }
+  .pane.real:nth-child(2) { border-left: 1px solid #2a2f38; }
+  .missing { aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    color: #6e7681; font-size: 12px; background: #0d1117; text-align: center; padding: 10px; }
+  .legend { display: flex; gap: 16px; margin-bottom: 18px; font-size: 13px; }
+  .legend span::before { content: '■ '; }
+  .legend .m { color: #58a6ff; } .legend .r { color: #3fb950; }
+</style>
+</head>
+<body>
+  <h1>Case 5 / 6 病人圖片比較</h1>
+  <div class="hint">
+    左＝目前線上的<b>訓練假人版</b>（gpt-image-2，file.jpg）；右＝<b>擬真台灣病童版</b>（gpt-image-1，file-real.jpg）。<br>
+    決定後告訴我要哪一版，我會把選定版本設為正式 <code>images/&lt;file&gt;.jpg</code>。缺圖代表該張被 moderation 擋下或尚未生成。
+  </div>
+  <div class="legend"><span class="m">假人版 (現行)</span><span class="r">擬真病童版 (gpt-image-1)</span></div>
+  <div id="root"></div>
+
+<script>
+const CASES = [
+  { title: '教案 5 · 5 歲疑心肌炎 → OHCA', segs: [
+    ['c5-s1','① 到場：失償性休克 (A倦怠 / B鼻翼煽動凹陷 / C蒼白發紺)'],
+    ['c5-s3','③ OHCA (VF)：無反應、發紺、去顫貼片'],
+    ['c5-s5','⑤ ROSC：膚色回復、BVM 給氧'],
+  ]},
+  { title: '教案 6 · 11 月齡嬰兒溺水 OHCA', segs: [
+    ['c6-s1','① 心肺停止 (Asystole)：全身發紺、無張力'],
+    ['c6-s3','③ IO + Epinephrine：發紺、脛骨骨針'],
+    ['c6-s4','④ ROSC 但 HR<60：淡藍膚色、保暖毯 + 氧氣'],
+  ]},
+];
+const root = document.getElementById('root');
+for (const c of CASES) {
+  const h = document.createElement('div'); h.className = 'case-title'; h.textContent = c.title; root.appendChild(h);
+  const g = document.createElement('div'); g.className = 'grid'; root.appendChild(g);
+  for (const [file, label] of c.segs) {
+    const card = document.createElement('div'); card.className = 'card';
+    card.innerHTML =
+      '<div class="seg">' + label + '</div>' +
+      '<div class="pair">' +
+        '<div class="pane manikin"><span class="lbl">假人</span>' +
+          '<img src="images/' + file + '.jpg?b=' + Date.now() + '" onerror="this.outerHTML=\'<div class=missing>假人版<br>缺圖</div>\'"></div>' +
+        '<div class="pane real"><span class="lbl">擬真</span>' +
+          '<img src="images/' + file + '-real.jpg?b=' + Date.now() + '" onerror="this.outerHTML=\'<div class=missing>擬真版<br>(被擋或未生成)</div>\'"></div>' +
+      '</div>';
+    g.appendChild(card);
+  }
+}
+</script>
+</body>
+</html>
