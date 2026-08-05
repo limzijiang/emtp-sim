@@ -60,32 +60,28 @@
   .monitor-header .clock { font-family: 'Courier New', monospace; }
   .monitor-header .battery::before { content: '🔋 '; }
 
-  /* Two-column monitor body: waveforms (left) | numerics (right) — Zoll X layout */
+  /* Row-based monitor body: each row = [waveform | numeric box] on ONE shared band.
+     NIBP / Temp rows keep an empty waveform slot so nothing overlaps or misleads. */
   .monitor-body {
     flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .vs-row {
+    flex: 1 1 0;
     display: grid;
-    grid-template-columns: 1fr 168px;
+    grid-template-columns: 1fr 240px;
+    border-bottom: 1px solid #1a1a1a;
     min-height: 0;
   }
-  .waveforms-col {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-  }
-  .numerics-col {
-    display: flex;
-    flex-direction: column;
-    border-left: 1px solid #1a1a1a;
-    min-height: 0;
-  }
+  .vs-row:last-child { border-bottom: none; }
 
   .wave {
-    flex: 1 1 0;
     position: relative;
     overflow: hidden;
     background: #000;
-    border-bottom: 1px solid #1a1a1a;
+    min-width: 0;
     min-height: 0;
   }
   .wave canvas {
@@ -124,37 +120,36 @@
      Boxes are stacked in the right-hand numerics column. */
   .numeric-box {
     --c: #35e04a;
-    flex: 1 1 0;
-    border-bottom: 1px solid #1a1a1a;
+    border-left: 1px solid #1a1a1a;
     padding: 0;
     display: flex;
     flex-direction: column;
     background: #000;
     overflow: hidden;
     min-height: 0;
+    min-width: 0;
   }
-  .numerics-col .numeric-box:last-child { border-bottom: none; }
   .numeric-box .nb-head {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
     background: var(--c);
     color: #041008;
-    font-size: 13px;
+    font-size: 32px;
     font-weight: 800;
     letter-spacing: 0.3px;
-    padding: 1px 8px 2px;
-    line-height: 1.25;
+    padding: 2px 10px 4px;
+    line-height: 1.15;
     flex: 0 0 auto;
   }
   .numeric-box .nb-head .units {
-    font-size: 10px;
+    font-size: 15px;
     font-weight: 700;
     opacity: 0.72;
   }
   .numeric-box .value {
     color: var(--c);
-    font-size: 50px;
+    font-size: 56px;
     font-weight: 700;
     line-height: 0.9;
     font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -164,20 +159,21 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding: 0 10px;
+    padding: 0 12px;
     min-height: 0;
   }
   .numeric-box .value.stacked {
     flex-direction: column;
     align-items: flex-end;
     justify-content: center;
-    line-height: 0.92;
+    font-size: 40px;
+    line-height: 0.95;
   }
   .numeric-box .sub {
     color: #9aa0ac;
-    font-size: 11px;
+    font-size: 14px;
     text-align: right;
-    padding: 0 10px 3px;
+    padding: 0 12px 4px;
     flex: 0 0 auto;
   }
   .numeric-box .sub b { color: var(--c); font-weight: 700; }
@@ -435,21 +431,6 @@
     100% { opacity: 0; }
   }
 
-  .cpr-indicator {
-    position: fixed;
-    top: 32px; left: 50%; transform: translateX(-50%);
-    background: #f44;
-    color: #fff;
-    padding: 5px 18px;
-    border-radius: 3px;
-    font-size: 15px;
-    font-weight: bold;
-    z-index: 50;
-    display: none;
-    animation: alarmBlink 1s infinite;
-  }
-  .cpr-indicator.active { display: block; }
-
   #sound-toggle {
     position: fixed;
     top: 32px; right: 14px;
@@ -469,13 +450,6 @@
   #sound-toggle.muted { background: #555; animation: none; }
   #sound-toggle:hover { filter: brightness(1.1); }
 
-  .value.pulseless {
-    color: #777 !important;
-  }
-  .value.pulseless::before {
-    content: '--';
-  }
-  .value.pulseless > * { display: none; }
 </style>
 </head>
 <body>
@@ -483,7 +457,6 @@
 <div id="connbar"><span id="conn-status">連線中…</span> · Session: <span id="conn-session">—</span></div>
 <div class="shock-flash" id="shock-flash"></div>
 <div class="shock-label" id="shock-label">SHOCK DELIVERED</div>
-<div class="cpr-indicator" id="cpr-indicator">CPR IN PROGRESS</div>
 <button id="sound-toggle">🔇 點此開啟監視器聲音</button>
 
 <div class="display">
@@ -494,41 +467,52 @@
     </div>
 
     <div class="monitor-body">
-      <div class="waveforms-col">
-        <div class="wave" id="row-ecg">
+      <div class="vs-row" id="row-hr">
+        <div class="wave">
           <div class="waveform-label green">II<span class="scale">1.0 cm/mV</span></div>
           <canvas id="cv-ecg"></canvas>
         </div>
-        <div class="wave" id="row-spo2">
-          <div class="waveform-label yellow">SpO₂<span class="scale">1 x</span></div>
-          <canvas id="cv-spo2"></canvas>
-        </div>
-        <div class="wave" id="row-co2">
-          <div class="waveform-label purple">CO₂<span class="scale">0 to 60 mmHg</span></div>
-          <canvas id="cv-co2"></canvas>
-        </div>
-      </div>
-
-      <div class="numerics-col">
         <div class="numeric-box green" id="box-hr">
           <div class="nb-head">HR<span class="units">bpm</span></div>
           <div class="value" id="v-hr">75</div>
         </div>
+      </div>
+
+      <div class="vs-row" id="row-nibp">
+        <div class="wave"><!-- NIBP has no waveform; slot intentionally empty --></div>
         <div class="numeric-box cyan" id="box-nibp">
           <div class="nb-head">NIBP<span class="units">mmHg</span></div>
           <div class="value stacked"><span id="v-sbp">128</span><span id="v-dbp">82</span></div>
           <div class="sub">(<b id="v-map">97</b>) · <span id="v-bptime">手動</span></div>
+        </div>
+      </div>
+
+      <div class="vs-row" id="row-spo2">
+        <div class="wave">
+          <div class="waveform-label yellow">SpO₂<span class="scale">1 x</span></div>
+          <canvas id="cv-spo2"></canvas>
         </div>
         <div class="numeric-box yellow" id="box-spo2">
           <div class="nb-head">SpO₂<span class="units">%</span></div>
           <div class="value" id="v-spo2">98</div>
           <div class="sub">PI <b id="v-pi">2.1</b></div>
         </div>
+      </div>
+
+      <div class="vs-row" id="row-co2">
+        <div class="wave">
+          <div class="waveform-label purple">CO₂<span class="scale">0 to 60 mmHg</span></div>
+          <canvas id="cv-co2"></canvas>
+        </div>
         <div class="numeric-box purple" id="box-etco2">
           <div class="nb-head">EtCO₂<span class="units">mmHg</span></div>
           <div class="value" id="v-etco2">38</div>
           <div class="sub" id="sub-br">BR <b id="v-rr">16</b></div>
         </div>
+      </div>
+
+      <div class="vs-row" id="row-temp">
+        <div class="wave"><!-- Temp has no waveform; slot intentionally empty --></div>
         <div class="numeric-box cyan" id="box-temp">
           <div class="nb-head">Temp<span class="units">°C</span></div>
           <div class="value" id="v-temp">36.7</div>
@@ -571,8 +555,6 @@ let state = {
   ectopy: 'none',
   stemiRegion: null,
   stOffset: 0,
-  pulseless: false,
-  cpr: false,
   panel: { mode: 'blank' },
   notes: '',
   labs: null,
@@ -626,7 +608,7 @@ function gauss(t, mu, sigma) {
 let beatSchedule = { beats: [], stateKey: '', wenckebachIdx: 0, mobitzIdx: 0 };
 
 function rhythmKey() {
-  return `${state.rhythm}|${state.vitals.hr}|${state.ectopy}|${state.stemiRegion}|${state.stOffset}|${state.pulseless ? 'p' : ''}|${state.cpr ? 'c' : ''}`;
+  return `${state.rhythm}|${state.vitals.hr}|${state.ectopy}|${state.stemiRegion}|${state.stOffset}`;
 }
 
 function scheduleBeats(currentTime) {
@@ -820,10 +802,6 @@ function ecgValueAt(t, lead) {
     const tri = 2 * Math.abs(((t * f) % 1) - 0.5) - 0.5;
     v += 0.18 * (lead === 'aVR' ? 1 : -1) * tri;
   }
-  // CPR artifact
-  if (state.cpr) {
-    v += 0.5 * Math.sin(t * 2*Math.PI * 1.8);
-  }
   // Independent P (3rd degree AVB)
   if (state.rhythm === 'AVB3' && (lead === 'II' || lead === 'V1')) {
     const pRate = 75 / 60;
@@ -836,7 +814,7 @@ function ecgValueAt(t, lead) {
 
 // =================== Pleth waveform ===================
 function plethValueAt(t) {
-  if (state.pulseless || state.rhythm === 'VF' || state.rhythm === 'Asystole' || state.rhythm === 'PEA') return 0;
+  if (state.rhythm === 'VF' || state.rhythm === 'Asystole' || state.rhythm === 'PEA') return 0;
   scheduleBeats(t);
   let v = 0;
   for (const b of beatSchedule.beats) {
@@ -860,7 +838,7 @@ function plethValueAt(t) {
 
 // =================== Capnography ===================
 function co2ValueAt(t) {
-  if (state.rhythm === 'Asystole' || (state.pulseless && !state.cpr)) {
+  if (state.rhythm === 'Asystole') {
     // arrest: EtCO2 drops
     return 0;
   }
@@ -1167,7 +1145,6 @@ function computeAlarmLevel() {
 
   // Lethal rhythms (only alarm if ECG channel is on)
   if (s.ecg && (state.rhythm === 'VF' || state.rhythm === 'VT' || state.rhythm === 'pVT' || state.rhythm === 'Asystole' || state.rhythm === 'PEA')) return 'high';
-  if (state.pulseless && (s.ecg || s.spo2 || s.nibp)) return 'high';
 
   // HIGH
   if (s.spo2 && v.spo2 != null && v.spo2 < 85) return 'high';
@@ -1193,7 +1170,7 @@ let lastQrsBeatT = -1;
 function audioTick(nowMs) {
   if (!monitorAudio.ctx) return;
   const t = waveforms[0]?.simTime;
-  if (t != null && !state.pulseless && state.rhythm !== 'VF' && state.rhythm !== 'Asystole') {
+  if (t != null && state.rhythm !== 'VF' && state.rhythm !== 'Asystole') {
     for (const b of beatSchedule.beats) {
       if (b.t > lastQrsBeatT && b.t <= t && !b.dropped) {
         monitorAudio.qrsTone();
@@ -1230,16 +1207,13 @@ soundBtn.addEventListener('click', () => {
 // =================== Numeric & UI sync ===================
 function applyVisibility() {
   const show = state.show || { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true };
-  // ECG toggle controls the Lead II waveform and the HR box
-  document.getElementById('row-ecg').style.display = show.ecg ? '' : 'none';
-  document.getElementById('box-hr').style.display = show.ecg ? '' : 'none';
+  // Each toggle hides its whole aligned row (waveform + numeric together)
+  document.getElementById('row-hr').style.display = show.ecg ? '' : 'none';
+  document.getElementById('row-nibp').style.display = show.nibp ? '' : 'none';
   document.getElementById('row-spo2').style.display = show.spo2 ? '' : 'none';
-  document.getElementById('box-spo2').style.display = show.spo2 ? '' : 'none';
   document.getElementById('row-co2').style.display = show.co2 ? '' : 'none';
-  document.getElementById('box-etco2').style.display = show.co2 ? '' : 'none';
-  document.getElementById('box-nibp').style.display = show.nibp ? '' : 'none';
   document.getElementById('sub-br').style.display = show.rr ? '' : 'none';
-  document.getElementById('box-temp').style.display = show.temp ? '' : 'none';
+  document.getElementById('row-temp').style.display = show.temp ? '' : 'none';
   // Defer reflow then resize waveforms to fit new heights
   requestAnimationFrame(() => {
     if (typeof waveforms !== 'undefined') {
@@ -1250,14 +1224,14 @@ function applyVisibility() {
 
 function updateNumerics() {
   applyVisibility();
-  document.getElementById('v-hr').textContent = state.pulseless ? '--' : Math.round(state.vitals.hr);
-  document.getElementById('v-spo2').textContent = state.pulseless ? '--' : Math.round(state.vitals.spo2);
+  document.getElementById('v-hr').textContent = Math.round(state.vitals.hr);
+  document.getElementById('v-spo2').textContent = Math.round(state.vitals.spo2);
   document.getElementById('v-pi').textContent = (state.vitals.pi || 0).toFixed(1);
   document.getElementById('v-rr').textContent = Math.round(state.vitals.rr);
-  document.getElementById('v-etco2').textContent = state.pulseless && !state.cpr ? '--' : Math.round(state.vitals.etco2);
-  document.getElementById('v-sbp').textContent = state.pulseless ? '--' : Math.round(state.vitals.sbp);
-  document.getElementById('v-dbp').textContent = state.pulseless ? '--' : Math.round(state.vitals.dbp);
-  document.getElementById('v-map').textContent = state.pulseless ? '--' : Math.round(state.vitals.map || ((state.vitals.sbp + 2*state.vitals.dbp)/3));
+  document.getElementById('v-etco2').textContent = Math.round(state.vitals.etco2);
+  document.getElementById('v-sbp').textContent = Math.round(state.vitals.sbp);
+  document.getElementById('v-dbp').textContent = Math.round(state.vitals.dbp);
+  document.getElementById('v-map').textContent = Math.round(state.vitals.map || ((state.vitals.sbp + 2*state.vitals.dbp)/3));
   document.getElementById('v-temp').textContent = (state.vitals.temp ?? 36.7).toFixed(1);
   document.getElementById('v-tempsite').textContent = state.vitals.tempSite || '耳溫';
   document.getElementById('hdr-patient').textContent =
@@ -1265,13 +1239,11 @@ function updateNumerics() {
 
   // Alarms (target boxes via their value element so palette changes don't break them)
   const hrBox = document.getElementById('v-hr').closest('.numeric-box');
-  hrBox.classList.toggle('alarm-high', !state.pulseless && (state.vitals.hr < 40 || state.vitals.hr > 140));
+  hrBox.classList.toggle('alarm-high', state.vitals.hr < 40 || state.vitals.hr > 140);
   const spo2Box = document.getElementById('v-spo2').closest('.numeric-box');
-  spo2Box.classList.toggle('alarm-high', !state.pulseless && state.vitals.spo2 < 90);
+  spo2Box.classList.toggle('alarm-high', state.vitals.spo2 < 90);
   const co2Box = document.getElementById('v-etco2').closest('.numeric-box');
-  co2Box.classList.toggle('alarm-high', !state.pulseless && (state.vitals.etco2 < 25 || state.vitals.etco2 > 50));
-
-  document.getElementById('cpr-indicator').classList.toggle('active', !!state.cpr);
+  co2Box.classList.toggle('alarm-high', state.vitals.etco2 < 25 || state.vitals.etco2 > 50);
 }
 
 function humanRhythm(r) {

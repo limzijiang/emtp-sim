@@ -408,8 +408,6 @@
   }
   .shock-btn { background: #da3633; color: #fff; }
   .shock-btn:active { background: #b62321; }
-  .cpr-btn { background: #f85149; color: #fff; }
-  .cpr-btn.active { background: #58a6ff; }
 
   .joule-pick {
     display: grid;
@@ -662,17 +660,6 @@
         </div>
       </div>
 
-      <div class="section">
-        <h3>狀態</h3>
-        <div class="toggle-row">
-          <span>無脈搏 (Pulseless)</span>
-          <div class="switch" id="t-pulseless" data-key="pulseless"></div>
-        </div>
-        <div class="toggle-row">
-          <span>CPR 進行中</span>
-          <div class="switch" id="t-cpr" data-key="cpr"></div>
-        </div>
-      </div>
     </div>
 
     <!-- ============ RIGHT PANEL TAB ============ -->
@@ -782,13 +769,6 @@
           <button data-j="360">360 J</button>
         </div>
         <div class="small-hint">放電後可手動把心律切換到 NSR / VF</div>
-      </div>
-
-      <div class="section">
-        <h3>CPR</h3>
-        <div class="strip-actions">
-          <button class="cpr-btn" id="btn-cpr-toggle">CPR 開始 / 停止</button>
-        </div>
       </div>
 
       <div class="section">
@@ -948,8 +928,6 @@ let state = {
   ectopy: 'none',
   stemiRegion: null,
   stOffset: 0.25,
-  pulseless: false,
-  cpr: false,
   panel: { mode: 'blank' },
   notes: '',
   labs: null,
@@ -1143,10 +1121,6 @@ document.querySelectorAll('#rhythm-btns button').forEach(b => {
     document.querySelectorAll('#rhythm-btns button').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     state.rhythm = b.dataset.r;
-    // Some rhythms imply pulseless
-    if (['VF','Asystole','PEA'].includes(state.rhythm)) state.pulseless = true;
-    if (state.rhythm === 'NSR' || state.rhythm === 'STach' || state.rhythm === 'SBrady') state.pulseless = false;
-    syncToggles();
     publishStateDebounced();
   });
 });
@@ -1176,19 +1150,6 @@ document.getElementById('r-st').value = state.stOffset;
 document.getElementById('v-st').textContent = state.stOffset.toFixed(2);
 
 // =================== Toggles ===================
-function syncToggles() {
-  document.getElementById('t-pulseless').classList.toggle('on', !!state.pulseless);
-  document.getElementById('t-cpr').classList.toggle('on', !!state.cpr);
-  document.getElementById('btn-cpr-toggle').classList.toggle('active', !!state.cpr);
-}
-document.querySelectorAll('.switch[data-key]').forEach(sw => {
-  sw.addEventListener('click', () => {
-    const key = sw.dataset.key;
-    state[key] = !state[key];
-    syncToggles();
-    publishStateDebounced();
-  });
-});
 document.querySelectorAll('.switch[data-show]').forEach(sw => {
   sw.addEventListener('click', () => {
     const key = sw.dataset.show;
@@ -1431,12 +1392,6 @@ document.getElementById('btn-shock').addEventListener('click', () => {
   publishAction({ type: 'shock', joules: selectedJoules });
   navigator.vibrate?.([100, 50, 100]);
 });
-document.getElementById('btn-cpr-toggle').addEventListener('click', () => {
-  state.cpr = !state.cpr;
-  syncToggles();
-  publishStateDebounced();
-});
-
 function flashScreen(text) {
   publishAction({ type: 'flash', text });
 }
@@ -1504,23 +1459,23 @@ const CASES = [
       { label: '① 到場：抽搐中', image: 'images/c1-s1.jpg',
         summary: 'GTC 持續，口鼻泡沫、gurgling，瞳孔 3.5+/3.5+',
         vitals: { hr: 125, sbp: 95, dbp: 60, spo2: 97, pi: 1.5, rr: 24, etco2: 38, temp: 37.6, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
       { label: '② 持續抽搐 · SpO₂ 下降', image: 'images/c1-s2.jpg', style: 'warn',
         summary: 'SpO₂ 掉到 90%、胸廓淺、發紺 → 升級 BVM',
         vitals: { hr: 130, sbp: 100, dbp: 65, spo2: 90, pi: 1.2, rr: 28, etco2: 45, temp: 37.7, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
       { label: '③ Midazolam 5mg IM → 抽搐停止', image: 'images/c1-s3.jpg',
         summary: 'Postictal, GCS E1M1V1, 血糖 52 mg/dL (低血糖)',
         vitals: { hr: 110, sbp: 88, dbp: 55, spo2: 96, pi: 1.8, rr: 14, etco2: 38, temp: 37.5, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
       { label: '④ BZD 副作用 + 低血糖未矯正', image: 'images/c1-s4.jpg', style: 'warn',
         summary: '⚠️ 呼吸抑制 + 低血壓 + 低血糖 → BVM + D10W stat',
         vitals: { hr: 92, sbp: 75, dbp: 45, spo2: 85, pi: 0.8, rr: 6, etco2: 55, temp: 37.4, tempSite: '耳溫' },
-        rhythm: 'NSR', pulseless: false, cpr: false },
+        rhythm: 'NSR' },
       { label: '⑤ D10W 75 mL IV → 恢復穩定', image: 'images/c1-s5.jpg', style: 'good',
         summary: '血糖 94，意識緩慢恢復，後送',
         vitals: { hr: 100, sbp: 95, dbp: 60, spo2: 99, pi: 2.0, rr: 16, etco2: 36, temp: 37.0, tempSite: '耳溫' },
-        rhythm: 'NSR', pulseless: false, cpr: false },
+        rhythm: 'NSR' },
     ],
   },
   {
@@ -1539,19 +1494,19 @@ const CASES = [
       { label: '① 到場：緩脈 + IICP 徵象', image: 'images/c2-s1.jpg',
         summary: 'HR 50、RR 10 胸凹、發紺、瞳孔不等、前囟門凸',
         vitals: { hr: 50, sbp: 130, dbp: 80, spo2: 88, pi: 0.6, rr: 10, etco2: 35, temp: 36.0, tempSite: '耳溫' },
-        rhythm: 'SBrady', pulseless: false, cpr: false },
+        rhythm: 'SBrady' },
       { label: '② BVM 正壓通氣 30s~2min', image: 'images/c2-s2.jpg',
         summary: '通氣後 HR 仍 50/min，無改善 → 啟動 CPR',
         vitals: { hr: 50, sbp: 135, dbp: 82, spo2: 92, pi: 0.7, rr: 20, etco2: 32, temp: 36.0, tempSite: '耳溫' },
-        rhythm: 'SBrady', pulseless: false, cpr: false },
+        rhythm: 'SBrady' },
       { label: '③ 脈搏仍 <60 → CPR + Epi 0.1mg IO', image: 'images/c2-s3.jpg', style: 'warn',
         summary: '15:2 壓胸 + BVM + Epinephrine 0.1mg IO (0.01×10kg)',
         vitals: { hr: 50, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 18, temp: 35.8, tempSite: '耳溫' },
-        rhythm: 'SBrady', pulseless: true, cpr: true },
+        rhythm: 'SBrady' },
       { label: '④ ROSC → 後送兒科急救醫院', image: 'images/c2-s4.jpg', style: 'good',
         summary: 'Post-arrest tachy，BP 回升，繼續通氣',
         vitals: { hr: 130, sbp: 100, dbp: 65, spo2: 95, pi: 1.2, rr: 25, etco2: 32, temp: 36.0, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
     ],
   },
   {
@@ -1570,19 +1525,19 @@ const CASES = [
       { label: '① 到場：嚴重過敏性休克 + 喉頭水腫', image: 'images/c3-s1.jpg', style: 'warn',
         summary: 'Stridor、蕁麻疹、CRT 4s、末梢濕冷',
         vitals: { hr: 120, sbp: 60, dbp: 40, spo2: 85, pi: 0.6, rr: 32, etco2: 30, temp: 39.0, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
       { label: '② Epinephrine 0.3mg IM + NRM 15L', image: 'images/c3-s2.jpg',
         summary: '0.01×30 = 0.3mg IM 大腿外側，stridor 略緩',
         vitals: { hr: 130, sbp: 72, dbp: 46, spo2: 90, pi: 0.9, rr: 30, etco2: 32, temp: 38.5, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
       { label: '③ NS 600mL IVF + Epi 5mg 霧化', image: 'images/c3-s3.jpg',
         summary: '20mL/kg × 30 = 600mL，BP 回升，意識↑',
         vitals: { hr: 120, sbp: 90, dbp: 50, spo2: 96, pi: 1.5, rr: 28, etco2: 34, temp: 37.2, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
       { label: '④ 後送中 (警示 biphasic 反應)', image: 'images/c3-s4.jpg', style: 'good',
         summary: '上車後又輕微 stridor，持續監測過敏反應',
         vitals: { hr: 100, sbp: 100, dbp: 65, spo2: 97, pi: 1.8, rr: 22, etco2: 36, temp: 36.5, tempSite: '耳溫' },
-        rhythm: 'NSR', pulseless: false, cpr: false },
+        rhythm: 'NSR' },
     ],
   },
   {
@@ -1601,19 +1556,19 @@ const CASES = [
       { label: '① 到場：急性氣喘嚴重發作', image: 'images/c4-s1.jpg',
         summary: 'Wheezing、鼻翼煽動、肋間凹陷、無法說完整句',
         vitals: { hr: 130, sbp: 92, dbp: 60, spo2: 85, pi: 1.2, rr: 36, etco2: 28, temp: 36.0, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
       { label: '② NRM 15L 給氧 + 坐姿', image: 'images/c4-s2.jpg',
         summary: 'SpO₂ 升到 90%，仍 wheezing 且喘',
         vitals: { hr: 128, sbp: 92, dbp: 60, spo2: 90, pi: 1.5, rr: 34, etco2: 30, temp: 36.0, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
       { label: '③ SABA MDI 2 dose + Salbutamol 5mg 霧化', image: 'images/c4-s3.jpg', style: 'good',
         summary: '可說完整句、wheezing 減弱、HR↑ (β-agonist 副作用)',
         vitals: { hr: 142, sbp: 98, dbp: 62, spo2: 96, pi: 2.0, rr: 24, etco2: 35, temp: 36.2, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
       { label: '④ 危險徵象：silent chest / 嗜睡 (惡化)', image: 'images/c4-s4.jpg', style: 'warn',
         summary: '⚠️ 嗜睡、呼吸音變弱、SpO₂ <88% → BVM + ALS',
         vitals: { hr: 100, sbp: 86, dbp: 55, spo2: 82, pi: 0.8, rr: 18, etco2: 60, temp: 36.0, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
     ],
   },
   {
@@ -1632,23 +1587,23 @@ const CASES = [
       { label: '① 到場：失償性休克', image: 'images/c5-s1.jpg', style: 'warn',
         summary: 'HR170 BP70/40 SpO₂86(RA) CRT4s 四肢冰冷蒼白，血糖80',
         vitals: { hr: 170, sbp: 70, dbp: 40, spo2: 86, pi: 0.6, rr: 30, etco2: 34, temp: 39.5, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
       { label: '② NRM + N/S 5–10mL/kg 後暫穩', image: 'images/c5-s2.jpg',
         summary: 'NRM 後 SpO₂→95%，仍 shock；監測是否惡化 (勿過度灌水)',
         vitals: { hr: 170, sbp: 75, dbp: 45, spo2: 95, pi: 0.9, rr: 30, etco2: 34, temp: 39.5, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
       { label: '③ 次評中惡化 → OHCA (VF)', image: 'images/c5-s3.jpg', style: 'warn',
         summary: '瀕死呼吸、頸動脈摸不到、VF → 去顫 2J/kg + 高品質 CPR',
         vitals: { hr: 170, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 15, temp: 39.0, tempSite: '耳溫' },
-        rhythm: 'VF', pulseless: true, cpr: true },
+        rhythm: 'VF' },
       { label: '④ 頑固型 VF：電擊 + Epi + Amiodarone', image: 'images/c5-s4.jpg', style: 'warn',
         summary: '4J/kg→最大10J/kg；Epi q3–5min；Amiodarone 5mg/kg 第3次電擊後',
         vitals: { hr: 0, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 18, temp: 38.8, tempSite: '耳溫' },
-        rhythm: 'VF', pulseless: true, cpr: true },
+        rhythm: 'VF' },
       { label: '⑤ ROSC (疑心衰竭)', image: 'images/c5-s5.jpg', style: 'good',
         summary: 'GCS3 瞳孔4+/4+ 頸靜脈怒張 肺濕囉音 → 關輸液、TTM',
         vitals: { hr: 165, sbp: 80, dbp: 50, spo2: 95, pi: 1.2, rr: 6, etco2: 35, temp: 38.3, tempSite: '耳溫' },
-        rhythm: 'STach', pulseless: false, cpr: false },
+        rhythm: 'STach' },
     ],
   },
   {
@@ -1667,19 +1622,19 @@ const CASES = [
       { label: '① 到場：心肺停止 (Asystole)', image: 'images/c6-s1.jpg', style: 'warn',
         summary: 'GCS E1V1M1、發紺、肱動脈摸不到 → 15:2 CPR + AED(不建議電擊)',
         vitals: { hr: 0, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 10, temp: 34.0, tempSite: '核心' },
-        rhythm: 'Asystole', pulseless: true, cpr: true },
+        rhythm: 'Asystole' },
       { label: '② 雙人 15:2 CPR + BVM (Asystole 持續)', image: 'images/c6-s2.jpg', style: 'warn',
         summary: '墊肩擺位、雙拇環抱壓胸深度4cm；請求第二台車',
         vitals: { hr: 0, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 12, temp: 34.0, tempSite: '核心' },
-        rhythm: 'Asystole', pulseless: true, cpr: true },
+        rhythm: 'Asystole' },
       { label: '③ IO + Epinephrine (由 EMTP)', image: 'images/c6-s3.jpg', style: 'warn',
         summary: 'IO 脛骨近端；Epi 0.1mg IO q3–5min；血糖78、體溫34需保暖',
         vitals: { hr: 0, sbp: 0, dbp: 0, spo2: 0, pi: 0, rr: 0, etco2: 14, temp: 34.0, tempSite: '核心' },
-        rhythm: 'Asystole', pulseless: true, cpr: true },
+        rhythm: 'Asystole' },
       { label: '④ 送醫途中 ROSC 但 HR<60', image: 'images/c6-s4.jpg', style: 'good',
         summary: '肱動脈脈搏25<60 併 shock signs → 持續 CPR + BVM + Epi',
         vitals: { hr: 25, sbp: 60, dbp: 45, spo2: 82, pi: 0.5, rr: 6, etco2: 20, temp: 34.0, tempSite: '核心' },
-        rhythm: 'SBrady', pulseless: false, cpr: true },
+        rhythm: 'SBrady' },
     ],
   },
 ];
@@ -1709,14 +1664,12 @@ function segVitalsLine(seg) {
   const v = seg.vitals;
   const parts = [
     `HR ${v.hr}`,
-    seg.pulseless ? 'BP --' : `BP ${v.sbp}/${v.dbp}`,
-    seg.pulseless ? 'SpO₂ --' : `SpO₂ ${v.spo2}`,
+    `BP ${v.sbp}/${v.dbp}`,
+    `SpO₂ ${v.spo2}`,
     `RR ${v.rr}`,
     `${v.temp}°C`,
     humanRhythm(seg.rhythm),
   ];
-  if (seg.pulseless) parts.push('PULSELESS');
-  if (seg.cpr) parts.push('CPR');
   return parts.join(' · ');
 }
 
@@ -1791,8 +1744,6 @@ function loadSegment(idx) {
   state.ectopy = seg.ectopy || 'none';
   state.stemiRegion = seg.stemiRegion || null;
   state.stOffset = seg.stOffset || 0;
-  state.pulseless = !!seg.pulseless;
-  state.cpr = !!seg.cpr;
   state.vitals = Object.assign({}, state.vitals, seg.vitals);
   state.vitals.map = Math.round((state.vitals.sbp + 2 * state.vitals.dbp) / 3);
   rampTarget = null;
@@ -1835,8 +1786,6 @@ function resetCase() {
   state.ectopy = 'none';
   state.stemiRegion = null;
   state.stOffset = 0;
-  state.pulseless = false;
-  state.cpr = false;
   state.notes = '';
   state.labs = null;
   state.imagingUrl = '';
@@ -1900,7 +1849,6 @@ function syncUIFromState() {
     sw.classList.toggle('on', !!state.patientShow[sw.dataset.pshow]);
   });
   updatePatientPreviews();
-  syncToggles();
 }
 buildCaseSelector();
 renderCaseUI();
