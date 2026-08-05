@@ -818,7 +818,7 @@
         <h3 id="case-title">—</h3>
         <div class="case-summary" id="case-summary">—</div>
         <button class="case-action-btn" onclick="loadCasePatient()">↻ 載入此案病人資料 + 重置時序</button>
-        <div class="small-hint" style="margin-top:8px">點下方任一階段按鈕即可一鍵套用該時段的全部生命徵象與心律。</div>
+        <div class="small-hint" style="margin-top:8px">載入後自動帶入第 ① 組 vital sign，且所有 monitor 項目<b>預設隱藏</b>——等學員接上 EKG/SpO₂/NIBP 等，再到 Vitals 分頁逐項打開。點下方任一階段按鈕可切換該時段的全部生命徵象與心律。</div>
       </div>
 
       <div class="section">
@@ -1731,6 +1731,19 @@ function loadCasePatient() {
   state.panel = { mode: 'patient' };
   state.medsList = [];
   state.shockCounter = 0;
+  // Pre-load the first vital-sign segment so vitals are ready behind the scenes
+  const seg = activeCase().segments[0];
+  if (seg) {
+    state.rhythm = seg.rhythm;
+    state.ectopy = seg.ectopy || 'none';
+    state.stemiRegion = seg.stemiRegion || null;
+    state.stOffset = seg.stOffset || 0;
+    state.vitals = Object.assign({}, state.vitals, seg.vitals);
+    state.vitals.map = Math.round((state.vitals.sbp + 2 * state.vitals.dbp) / 3);
+  }
+  // Monitor starts fully "disconnected": all channels hidden until the
+  // instructor reveals each one as students attach the corresponding probe.
+  state.show = { ecg: false, spo2: false, co2: false, rr: false, nibp: false, temp: false };
   rampTarget = null;
   syncUIFromState();
   publishState(true);
