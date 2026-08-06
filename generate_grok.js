@@ -44,6 +44,36 @@ const ITEMS = [
   // ④ ROSC but HR<60, still hypoxic (SpO2 82) → still dusky, warming
   { file: 'c6-s4', prompt:
     'A real 11-month-old Taiwanese baby boy on an ambulance stretcher after return of circulation but still critically ill and hypoxic. Limp and drowsy with eyes barely open, slow breathing. Skin still pale with a persistent dusky bluish tinge to the lips. Wrapped in a silver warming blanket, a small pediatric oxygen mask over the nose and mouth, ECG leads on the chest. Ambulance interior with a monitor in the background.' + C },
+
+  // ===== Case 7 — 6yo dodgeball head hit, epistaxis (BLS初評), 2 stages =====
+  // ① Arrival: crying, agitated, nosebleed being pinched by school nurse
+  { file: 'c7-s1', prompt:
+    'A real 6-year-old Taiwanese boy sitting on the ground of a school playground, crying loudly and agitated, tears on his cheeks, mouth open mid-cry. He has a nosebleed: fresh red blood visible around his nostrils and several red blood stains down the front of his light-colored school PE shirt. An adult school nurse\'s hand (only hand and forearm visible) gently pinches the bridge of his nose with white gauze. Daytime outdoor school playground background.' + C },
+  // ② Calmed: leaning forward, cooperative, gauze at nose, stable
+  { file: 'c7-s2', prompt:
+    'A real 6-year-old Taiwanese boy sitting calmly on a school playground bench, leaning slightly forward, no longer crying, calm and cooperative expression. He gently holds a piece of white gauze under his own nose; a few dried blood stains on his school PE shirt. Healthy pink skin color, breathing normally. An EMT\'s gloved hand takes his radial pulse at the wrist. Daytime school playground background.' + C },
+
+  // ===== Case 8 — 10yo 6-metre fall, major trauma / hemorrhagic shock (ALS), 3 stages =====
+  // ① Arrival: unconscious on concrete, thigh laceration bleeding, pale
+  { file: 'c8-s1', prompt:
+    'Exactly ONE single real 10-year-old Taiwanese boy (one head, one body, nobody else in the frame) lying supine alone on grey concrete ground of a school courtyard after a fall from height, unconscious with eyes closed, photographed from a three-quarter overhead angle. Very pale skin, a small abrasion on his cheek. His right trouser leg is torn near the knee revealing a bleeding 5 cm laceration on the thigh with a small pool of fresh red blood on the concrete. Mouth slightly open. School building blurred in the background.' + C },
+  // ② After interventions: pressure dressing, NPA, NRM oxygen, pelvic binder
+  { file: 'c8-s2', prompt:
+    'A real 10-year-old Taiwanese boy lying supine on the ground being treated by EMTs after a fall from height, unconscious with eyes closed, very pale. A pressure bandage is wrapped around his right thigh, a soft nasopharyngeal airway tube is in one nostril, and a pediatric non-rebreather oxygen mask with reservoir bag covers his nose and mouth. A pelvic binder belt is fastened around his hips. Gloved EMT hands adjusting the dressing. Urgent trauma scene, school courtyard.' + C },
+  // ③ After IV fluids: on stretcher with collar, IV running, color improving
+  { file: 'c8-s3', prompt:
+    'A real 10-year-old Taiwanese boy secured on an ambulance stretcher with a pediatric cervical collar, unconscious but with skin color improving from grey-pale toward light pink. A pediatric non-rebreather oxygen mask on his face, an IV line running into his arm from a saline bag held above, a pressure bandage on the right thigh and a pelvic binder visible. ECG electrode stickers on the chest. Ambulance interior, transport underway.' + C },
+
+  // ===== Case 9 — 8mo infant suspected abusive head trauma (TBI), 3 stages =====
+  // ① Arrival: comatose infant on play mat, forehead swelling, bruises, anisocoria hinted
+  { file: 'c9-s1', prompt:
+    'A real 8-month-old Taiwanese baby boy lying limp and unconscious on a colorful foam play mat inside a home playpen with fabric fence. Eyes closed, pale skin, mouth slightly open as if snoring. A mildly swollen reddened bump on his forehead and one small faint bruise on his upper arm. Home living room background, toys nearby.' + C },
+  // ② OPA + BVM assisted ventilation
+  { file: 'c9-s2', prompt:
+    'A real 8-month-old Taiwanese baby boy lying supine on a play mat receiving assisted ventilation: a gloved paramedic hand holds an infant bag-valve mask sealed over his nose and mouth, another gloved hand supports the jaw. Eyes closed, limp, pale skin, the swollen reddened bump on the forehead still visible. A rolled towel under the shoulders keeping the neck neutral. Home interior background.' + C },
+  // ③ Transport: neutral c-spine, ventilation continuing, warming
+  { file: 'c9-s3', prompt:
+    'A real 8-month-old Taiwanese baby boy secured on an ambulance stretcher with soft head blocks keeping the head and neck in a neutral straight position, wrapped warmly in a blanket. Eyes closed, pale but stable skin color, the reddened forehead bump visible. A gloved hand continues gentle bag-valve-mask ventilation over his nose and mouth. ECG electrode stickers on the chest, monitor in the background. Ambulance interior.' + C },
 ];
 
 async function generate(prompt) {
