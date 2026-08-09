@@ -495,7 +495,7 @@
         <div class="numeric-box yellow" id="box-spo2">
           <div class="nb-head">SpO₂<span class="units">%</span></div>
           <div class="value" id="v-spo2">98</div>
-          <div class="sub">PI <b id="v-pi">2.1</b></div>
+          <div class="sub">PR <b id="v-pr">75</b> /min · PI <b id="v-pi">2.1</b></div>
         </div>
       </div>
 
@@ -1226,6 +1226,9 @@ function updateNumerics() {
   applyVisibility();
   document.getElementById('v-hr').textContent = Math.round(state.vitals.hr);
   document.getElementById('v-spo2').textContent = Math.round(state.vitals.spo2);
+  // Pulse rate derived from the pleth: matches HR while perfusing, blank in non-perfusing rhythms
+  const noPleth = state.rhythm === 'VF' || state.rhythm === 'Asystole' || state.rhythm === 'PEA';
+  document.getElementById('v-pr').textContent = noPleth ? '--' : Math.round(state.vitals.hr);
   document.getElementById('v-pi').textContent = (state.vitals.pi || 0).toFixed(1);
   document.getElementById('v-rr').textContent = Math.round(state.vitals.rr);
   document.getElementById('v-etco2').textContent = Math.round(state.vitals.etco2);
