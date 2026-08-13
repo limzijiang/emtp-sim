@@ -76,6 +76,9 @@
     min-height: 0;
   }
   .vs-row:last-child { border-bottom: none; }
+  /* A hidden channel keeps its fixed 1/5 slot; only its contents disappear */
+  .vs-row.ch-hidden .wave > *,
+  .vs-row.ch-hidden .numeric-box { visibility: hidden; }
 
   .wave {
     position: relative;
@@ -1207,19 +1210,13 @@ soundBtn.addEventListener('click', () => {
 // =================== Numeric & UI sync ===================
 function applyVisibility() {
   const show = state.show || { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true };
-  // Each toggle hides its whole aligned row (waveform + numeric together)
-  document.getElementById('row-hr').style.display = show.ecg ? '' : 'none';
-  document.getElementById('row-nibp').style.display = show.nibp ? '' : 'none';
-  document.getElementById('row-spo2').style.display = show.spo2 ? '' : 'none';
-  document.getElementById('row-co2').style.display = show.co2 ? '' : 'none';
+  // Rows keep their fixed 1/5 slot; hiding a channel only blanks its contents
+  document.getElementById('row-hr').classList.toggle('ch-hidden', !show.ecg);
+  document.getElementById('row-nibp').classList.toggle('ch-hidden', !show.nibp);
+  document.getElementById('row-spo2').classList.toggle('ch-hidden', !show.spo2);
+  document.getElementById('row-co2').classList.toggle('ch-hidden', !show.co2);
   document.getElementById('sub-br').style.display = show.rr ? '' : 'none';
-  document.getElementById('row-temp').style.display = show.temp ? '' : 'none';
-  // Defer reflow then resize waveforms to fit new heights
-  requestAnimationFrame(() => {
-    if (typeof waveforms !== 'undefined') {
-      for (const wf of waveforms) wf.resize();
-    }
-  });
+  document.getElementById('row-temp').classList.toggle('ch-hidden', !show.temp);
 }
 
 function updateNumerics() {
