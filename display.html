@@ -76,6 +76,11 @@
     min-height: 0;
   }
   .vs-row:last-child { border-bottom: none; }
+  /* Compact bottom strip (Temp) */
+  .vs-row.small { flex: 0 0 72px; }
+  .vs-row.small .nb-head { font-size: 20px; padding: 1px 10px 2px; }
+  .vs-row.small .value { font-size: 30px; letter-spacing: -1px; }
+  .vs-row.small .sub { font-size: 12px; padding-bottom: 2px; }
   /* A hidden channel keeps its fixed 1/5 slot; only its contents disappear */
   .vs-row.ch-hidden .wave > *,
   .vs-row.ch-hidden .numeric-box { visibility: hidden; }
@@ -169,7 +174,7 @@
     flex-direction: column;
     align-items: flex-end;
     justify-content: center;
-    font-size: 40px;
+    font-size: 34px;
     line-height: 0.95;
   }
   .numeric-box .sub {
@@ -510,11 +515,18 @@
         <div class="numeric-box purple" id="box-etco2">
           <div class="nb-head">EtCO₂<span class="units">mmHg</span></div>
           <div class="value" id="v-etco2">38</div>
-          <div class="sub" id="sub-br">BR <b id="v-rr">16</b></div>
         </div>
       </div>
 
-      <div class="vs-row" id="row-temp">
+      <div class="vs-row" id="row-rr">
+        <div class="wave"><!-- RR has no waveform; slot intentionally empty --></div>
+        <div class="numeric-box purple" id="box-rr">
+          <div class="nb-head">RR<span class="units">/min</span></div>
+          <div class="value" id="v-rr">16</div>
+        </div>
+      </div>
+
+      <div class="vs-row small" id="row-temp">
         <div class="wave"><!-- Temp has no waveform; slot intentionally empty --></div>
         <div class="numeric-box cyan" id="box-temp">
           <div class="nb-head">Temp<span class="units">°C</span></div>
@@ -1215,7 +1227,7 @@ function applyVisibility() {
   document.getElementById('row-nibp').classList.toggle('ch-hidden', !show.nibp);
   document.getElementById('row-spo2').classList.toggle('ch-hidden', !show.spo2);
   document.getElementById('row-co2').classList.toggle('ch-hidden', !show.co2);
-  document.getElementById('sub-br').style.display = show.rr ? '' : 'none';
+  document.getElementById('row-rr').classList.toggle('ch-hidden', !show.rr);
   document.getElementById('row-temp').classList.toggle('ch-hidden', !show.temp);
 }
 
