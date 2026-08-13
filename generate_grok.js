@@ -95,6 +95,11 @@ const ITEMS = [
     'Close-up of newborn CPR technique on a real Taiwanese newborn baby boy lying on a firm surface: a rescuer\'s TWO GLOVED THUMBS ONLY touch the front of the chest, pressed side by side on the lower half of the tiny sternum just below the nipple line; the rest of both hands wrap AROUND THE SIDES of the torso with fingers BEHIND the baby\'s back — no palms or fingers lie flat on the front of the chest. At the same time a second rescuer holds a tiny round mask SEALED ON the baby\'s nose and mouth, attached to a small ventilation bag. Pale skin with faint bluish lip tinge, ECG electrode stickers on the chest. Urgent but controlled scene. Home setting.' + C },
   { file: 'c11-s5', prompt:
     'A real newborn Taiwanese baby boy recovered after resuscitation, wrapped warmly in a soft blanket with a tiny knitted cap, healthy pink skin, eyes gently open, breathing on his own, small ECG electrode stickers visible at the chest opening of the blanket, a paramedic gloved hand resting reassuringly beside him. Portable monitor with green numbers in the background. Ambulance interior, warm light.' + C },
+  // ===== NRP restructure: two additional stage images =====
+  { file: 'c10-s2b', prompt:
+    'A real newborn Taiwanese baby girl snugly swaddled in a soft white cloth, held gently in the arms of her Taiwanese mother who is fully dressed in comfortable pajamas, reclining against pillows on a bed and looking down warmly at the baby. Baby calm with a healthy pink face, eyes gently open. Warm home bedroom light. Reassuring stable mother-and-newborn scene after an uncomplicated home birth.' + C },
+  { file: 'c13-s1', prompt:
+    'A very small real premature Taiwanese baby (born early, tiny and delicate) lying WRAPPED in a soft towel on an ambulance stretcher, only the small face and one tiny hand visible, breathing fast with slightly flared nostrils, thin reddish-pink facial skin as premature infants have, eyes closed, a paramedic gloved hand gently beside the head. Ambulance interior, gentle careful scene.' + C },
 ];
 
 async function generate(prompt) {
