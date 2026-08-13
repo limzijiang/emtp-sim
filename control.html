@@ -200,6 +200,7 @@
     grid-template-columns: 50px 1fr;
     margin-bottom: 0;
   }
+  .row .val.extreme { color: #f66; }
 
   .tab-pane { display: none; }
   .tab-pane.active { display: block; }
@@ -491,120 +492,21 @@
 
   <main>
     <!-- ============ VITALS TAB ============ -->
-    <div class="tab-pane active" data-tab="vitals">
+    <div class="tab-pane" data-tab="vitals">
       <div class="section">
         <h3>生命徵象</h3>
         <div class="ramp-control">
           變化速度
-          <select id="ramp-mode">
+          <select class="ramp-mode">
             <option value="instant">立即</option>
             <option value="fast" selected>快 (3秒)</option>
             <option value="medium">中 (10秒)</option>
             <option value="slow">慢 (30秒)</option>
           </select>
         </div>
-        <div class="small-hint">每組左側開關控制大銀幕是否顯示該項目</div>
+        <div class="small-hint">左側開關控制大銀幕顯示；滑桿中段為常見範圍，<span style="color:#f66">紅色兩端</span>為極端值</div>
       </div>
-
-      <div class="section vital-block">
-        <h3 style="color:#3fb950">HR · 心率</h3>
-        <div class="vital-row">
-          <div class="switch on" data-show="ecg" title="顯示 ECG / HR"></div>
-          <div class="vital-content">
-            <div class="row">
-              <label>HR</label>
-              <input type="range" min="0" max="250" step="1" id="r-hr">
-              <span class="val" id="v-hr">75</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section vital-block bp">
-        <h3 style="color:#c9d1d9">NIBP · 血壓</h3>
-        <div class="vital-row">
-          <div class="switch on" data-show="nibp" title="顯示 NIBP"></div>
-          <div class="vital-content">
-            <div class="row">
-              <label>SBP</label>
-              <input type="range" min="40" max="240" step="2" id="r-sbp">
-              <span class="val" id="v-sbp">128</span>
-            </div>
-            <div class="row">
-              <label>DBP</label>
-              <input type="range" min="20" max="160" step="2" id="r-dbp">
-              <span class="val" id="v-dbp">82</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section vital-block spo2">
-        <h3 style="color:#4ee">SpO₂ · 血氧</h3>
-        <div class="vital-row">
-          <div class="switch on" data-show="spo2" title="顯示 SpO₂ Pleth + 數值"></div>
-          <div class="vital-content">
-            <div class="row">
-              <label>SpO₂</label>
-              <input type="range" min="50" max="100" step="1" id="r-spo2">
-              <span class="val" id="v-spo2">98</span>
-            </div>
-            <div class="row">
-              <label>PI</label>
-              <input type="range" min="0" max="20" step="0.1" id="r-pi">
-              <span class="val" id="v-pi">2.1</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section vital-block co2">
-        <h3 style="color:#fc4">EtCO₂ · 呼末二氧化碳</h3>
-        <div class="vital-row">
-          <div class="switch on" data-show="co2" title="顯示 capnography 波形 + EtCO₂ 數值"></div>
-          <div class="vital-content">
-            <div class="row">
-              <label>EtCO₂</label>
-              <input type="range" min="0" max="80" step="1" id="r-etco2">
-              <span class="val" id="v-etco2">38</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section vital-block co2">
-        <h3 style="color:#fc4">RR · 呼吸速率</h3>
-        <div class="vital-row">
-          <div class="switch on" data-show="rr" title="顯示 RR 數值"></div>
-          <div class="vital-content">
-            <div class="row">
-              <label>RR</label>
-              <input type="range" min="0" max="60" step="1" id="r-rr">
-              <span class="val" id="v-rr">16</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section vital-block temp">
-        <h3 style="color:#f93">Temp · 體溫</h3>
-        <div class="vital-row">
-          <div class="switch on" data-show="temp" title="顯示體溫"></div>
-          <div class="vital-content">
-            <div class="row">
-              <label>Temp</label>
-              <input type="range" min="28" max="42" step="0.1" id="r-temp">
-              <span class="val" id="v-temp">36.7</span>
-            </div>
-            <div class="field">
-              <label>測量</label>
-              <select id="i-tempsite">
-                <option>耳溫</option><option>口溫</option><option>腋溫</option><option>肛溫</option><option>核心</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div class="vital-controls"></div>
     </div>
 
     <!-- ============ RHYTHM TAB ============ -->
@@ -806,7 +708,7 @@
     </div>
 
     <!-- ============ SCENARIOS TAB ============ -->
-    <div class="tab-pane" data-tab="scenarios">
+    <div class="tab-pane active" data-tab="scenarios">
       <div class="section">
         <h3>選擇教案</h3>
         <select id="case-selector" onchange="selectCase(this.value)" style="width:100%; background:#0d1117; border:1px solid #30363d; color:#c9d1d9; padding:10px; border-radius:6px; font-size:14px;">
@@ -818,33 +720,7 @@
         <h3 id="case-title">—</h3>
         <div class="case-summary" id="case-summary">—</div>
         <button class="case-action-btn" onclick="loadCasePatient()">↻ 載入此案病人資料 + 重置時序</button>
-        <div class="small-hint" style="margin-top:8px">載入後自動帶入第 ① 組 vital sign，且所有 monitor 項目<b>預設隱藏</b>——等學員接上 EKG/SpO₂/NIBP 等，再到 Vitals 分頁逐項打開。點下方任一階段按鈕可切換該時段的全部生命徵象與心律。</div>
-      </div>
-
-      <div class="section">
-        <h3>學員問了 → 點開顯示</h3>
-        <div class="small-hint" style="margin-bottom:6px">大銀幕需處於「病人資料」面板才會顯示這些欄位</div>
-        <div class="ask-toggle">
-          <div><div class="ask-label">體重</div><div class="ask-preview" data-pf="weight"></div></div>
-          <div class="switch" data-pshow="weight"></div>
-        </div>
-        <div class="ask-toggle">
-          <div><div class="ask-label">過敏</div><div class="ask-preview" data-pf="allergy"></div></div>
-          <div class="switch" data-pshow="allergy"></div>
-        </div>
-        <div class="ask-toggle">
-          <div><div class="ask-label">過去病史</div><div class="ask-preview" data-pf="pmh"></div></div>
-          <div class="switch" data-pshow="pmh"></div>
-        </div>
-        <div class="ask-toggle">
-          <div><div class="ask-label">用藥</div><div class="ask-preview" data-pf="meds"></div></div>
-          <div class="switch" data-pshow="meds"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h3>vital sign 套組 · 依時序</h3>
-        <div id="segments-container"></div>
+        <div class="small-hint" style="margin-top:8px">載入後自動帶入第 ① 組 vital sign，且所有 monitor 項目<b>預設隱藏</b>——等學員接上 EKG/SpO₂/NIBP 等，再到下方「Vital sign 開關與調整」逐項打開。點下方任一階段按鈕可切換該時段的全部生命徵象與心律。</div>
       </div>
 
       <div class="section">
@@ -853,6 +729,26 @@
         <div class="image-grid" id="image-grid"></div>
         <button class="case-action-btn secondary" style="margin-top:10px" onclick="clearSegmentImage()">隱藏圖片</button>
       </div>
+
+      <div class="section">
+        <h3>vital sign 套組 · 依時序</h3>
+        <div id="segments-container"></div>
+      </div>
+
+      <div class="section">
+        <h3>Vital sign 開關與調整</h3>
+        <div class="ramp-control">
+          變化速度
+          <select class="ramp-mode">
+            <option value="instant">立即</option>
+            <option value="fast" selected>快 (3秒)</option>
+            <option value="medium">中 (10秒)</option>
+            <option value="slow">慢 (30秒)</option>
+          </select>
+        </div>
+        <div class="small-hint">與 Vitals 分頁完全同步；滑桿中段為常見範圍，<span style="color:#f66">紅色兩端</span>為極端值</div>
+      </div>
+      <div class="vital-controls"></div>
 
       <div class="section">
         <h3>呼吸音 (大銀幕播放)</h3>
@@ -872,11 +768,11 @@
   </main>
 
   <nav class="tabs">
-    <button data-tab="vitals" class="active"><span class="ico">📊</span><span>Vitals</span></button>
+    <button data-tab="scenarios" class="active"><span class="ico">📋</span><span>教案</span></button>
+    <button data-tab="vitals"><span class="ico">📊</span><span>Vitals</span></button>
     <button data-tab="rhythm"><span class="ico">💚</span><span>心律</span></button>
     <button data-tab="panel"><span class="ico">📺</span><span>大銀幕</span></button>
     <button data-tab="actions"><span class="ico">⚡</span><span>處置</span></button>
-    <button data-tab="scenarios"><span class="ico">📋</span><span>教案</span></button>
   </nav>
 </div>
 
@@ -1057,7 +953,7 @@ function publishAction(action) {
 
 // Ramping: smooth interpolation of vitals
 function setVital(key, target) {
-  const mode = document.getElementById('ramp-mode').value;
+  const mode = document.querySelector('.ramp-mode')?.value || 'fast';
   const dur = { instant: 0, fast: 3000, medium: 10000, slow: 30000 }[mode] ?? 3000;
   if (dur === 0) {
     state.vitals[key] = target;
@@ -1087,33 +983,120 @@ function startRamp() {
   }, 100);
 }
 
-// =================== Vitals sliders ===================
-function bindRange(rangeId, valId, vitalKey, decimals = 0) {
-  const r = document.getElementById(rangeId);
-  const v = document.getElementById(valId);
-  r.value = state.vitals[vitalKey];
-  v.textContent = formatNum(state.vitals[vitalKey], decimals);
-  r.addEventListener('input', () => {
-    const val = parseFloat(r.value);
-    v.textContent = formatNum(val, decimals);
-    setVital(vitalKey, val);
+// =================== Vitals sliders (nonlinear, multi-instance synced) ===================
+// Middle 70% of each slider covers the common clinical range [lo, hi];
+// the outer 15% ends map to extreme values and are tinted red.
+const VITAL_DEFS = {
+  hr:    { min: 0,  max: 250, lo: 40,  hi: 180, dec: 0 },
+  sbp:   { min: 0,  max: 250, lo: 60,  hi: 200, dec: 0 },
+  dbp:   { min: 0,  max: 150, lo: 30,  hi: 110, dec: 0 },
+  spo2:  { min: 0,  max: 100, lo: 70,  hi: 100, dec: 0 },
+  pi:    { min: 0,  max: 20,  lo: 0.5, hi: 5,   dec: 1 },
+  rr:    { min: 0,  max: 80,  lo: 8,   hi: 40,  dec: 0 },
+  etco2: { min: 0,  max: 100, lo: 20,  hi: 60,  dec: 0 },
+  temp:  { min: 25, max: 43,  lo: 35,  hi: 40,  dec: 1 },
+};
+const VITAL_BLOCKS = [
+  { title: 'HR · 心率',            color: '#3fb950', show: 'ecg',  rows: [{ key: 'hr',    label: 'HR' }] },
+  { title: 'NIBP · 血壓',          color: '#c9d1d9', show: 'nibp', rows: [{ key: 'sbp',   label: 'SBP' }, { key: 'dbp', label: 'DBP' }] },
+  { title: 'SpO₂ · 血氧',          color: '#4ee',    show: 'spo2', rows: [{ key: 'spo2',  label: 'SpO₂' }, { key: 'pi', label: 'PI' }] },
+  { title: 'EtCO₂ · 呼末二氧化碳', color: '#fc4',    show: 'co2',  rows: [{ key: 'etco2', label: 'EtCO₂' }] },
+  { title: 'RR · 呼吸速率',        color: '#fc4',    show: 'rr',   rows: [{ key: 'rr',    label: 'RR' }] },
+  { title: 'Temp · 體溫',          color: '#f93',    show: 'temp', rows: [{ key: 'temp',  label: 'Temp' }], tempsite: true },
+];
+const P_LO = 0.15, P_HI = 0.85;   // slider fractions for the extreme zones
+
+function vitalZones(def) {
+  return {
+    pLo: def.lo > def.min ? P_LO : 0,
+    pHi: def.hi < def.max ? P_HI : 1,
+  };
+}
+function posToValue(def, p) {
+  const { pLo, pHi } = vitalZones(def);
+  let v;
+  if (p < pLo)      v = def.min + (p / pLo) * (def.lo - def.min);
+  else if (p <= pHi) v = def.lo + ((p - pLo) / (pHi - pLo)) * (def.hi - def.lo);
+  else               v = def.hi + ((p - pHi) / (1 - pHi)) * (def.max - def.hi);
+  const f = Math.pow(10, def.dec);
+  return Math.round(v * f) / f;
+}
+function valueToPos(def, v) {
+  const { pLo, pHi } = vitalZones(def);
+  v = Math.max(def.min, Math.min(def.max, v));
+  if (v < def.lo)      return pLo * (v - def.min) / (def.lo - def.min || 1);
+  if (v <= def.hi)     return pLo + (pHi - pLo) * (v - def.lo) / (def.hi - def.lo || 1);
+  return pHi + (1 - pHi) * (v - def.hi) / (def.max - def.hi || 1);
+}
+function vitalFmt(def, v) { return Number(v).toFixed(def.dec); }
+
+const vitalUI = {};   // key -> [{range, val}]
+function buildVitalControls() {
+  const html = VITAL_BLOCKS.map(b => `
+    <div class="section vital-block">
+      <h3 style="color:${b.color}">${b.title}</h3>
+      <div class="vital-row">
+        <div class="switch" data-show="${b.show}"></div>
+        <div class="vital-content">
+          ${b.rows.map(r => `
+          <div class="row">
+            <label>${r.label}</label>
+            <input type="range" min="0" max="1000" step="1" class="vs-range" data-vs="${r.key}">
+            <span class="val" data-vsval="${r.key}"></span>
+          </div>`).join('')}
+          ${b.tempsite ? `
+          <div class="field">
+            <label>測量</label>
+            <select class="i-tempsite">
+              <option>耳溫</option><option>口溫</option><option>腋溫</option><option>肛溫</option><option>核心</option>
+            </select>
+          </div>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('.vital-controls').forEach(c => { c.innerHTML = html; });
+
+  Object.keys(VITAL_DEFS).forEach(k => { vitalUI[k] = []; });
+  document.querySelectorAll('.vs-range').forEach(r => {
+    const key = r.dataset.vs;
+    const def = VITAL_DEFS[key];
+    const val = r.closest('.row').querySelector('.val');
+    const { pLo, pHi } = vitalZones(def);
+    r.style.background = `linear-gradient(to right, #8a3232 0 ${pLo*100}%, #2a2f38 ${pLo*100}% ${pHi*100}%, #8a3232 ${pHi*100}% 100%)`;
+    vitalUI[key].push({ range: r, val });
+    r.addEventListener('input', () => {
+      const v = posToValue(def, r.value / 1000);
+      showVitalValue(key, v);
+      setVital(key, v);
+    });
+  });
+  document.querySelectorAll('.i-tempsite').forEach(sel => {
+    sel.addEventListener('change', () => {
+      state.vitals.tempSite = sel.value;
+      document.querySelectorAll('.i-tempsite').forEach(x => { x.value = sel.value; });
+      publishStateDebounced();
+    });
+  });
+  document.querySelectorAll('.ramp-mode').forEach(sel => {
+    sel.addEventListener('change', () => {
+      document.querySelectorAll('.ramp-mode').forEach(x => { x.value = sel.value; });
+    });
   });
 }
-function formatNum(n, d) { return Number(n).toFixed(d); }
-
-bindRange('r-hr', 'v-hr', 'hr', 0);
-bindRange('r-sbp', 'v-sbp', 'sbp', 0);
-bindRange('r-dbp', 'v-dbp', 'dbp', 0);
-bindRange('r-spo2', 'v-spo2', 'spo2', 0);
-bindRange('r-pi', 'v-pi', 'pi', 1);
-bindRange('r-rr', 'v-rr', 'rr', 0);
-bindRange('r-etco2', 'v-etco2', 'etco2', 0);
-bindRange('r-temp', 'v-temp', 'temp', 1);
-
-document.getElementById('i-tempsite').addEventListener('change', e => {
-  state.vitals.tempSite = e.target.value;
-  publishStateDebounced();
-});
+// Update every bound slider/label for `key` to display value v (both tabs stay in sync)
+function showVitalValue(key, v) {
+  const def = VITAL_DEFS[key];
+  for (const ui of (vitalUI[key] || [])) {
+    ui.range.value = Math.round(valueToPos(def, v) * 1000);
+    ui.val.textContent = vitalFmt(def, v);
+    ui.val.classList.toggle('extreme', v < def.lo - 1e-9 || v > def.hi + 1e-9);
+  }
+}
+function updateAllVitalUI() {
+  Object.keys(VITAL_DEFS).forEach(k => showVitalValue(k, state.vitals[k] ?? VITAL_DEFS[k].lo));
+  document.querySelectorAll('.i-tempsite').forEach(x => { x.value = state.vitals.tempSite || '耳溫'; });
+}
+buildVitalControls();
 
 // =================== Rhythm buttons ===================
 document.querySelectorAll('#rhythm-btns button').forEach(b => {
@@ -1155,7 +1138,7 @@ document.querySelectorAll('.switch[data-show]').forEach(sw => {
     const key = sw.dataset.show;
     if (!state.show) state.show = { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true };
     state.show[key] = !state.show[key];
-    sw.classList.toggle('on', !!state.show[key]);
+    document.querySelectorAll(`.switch[data-show="${key}"]`).forEach(x => x.classList.toggle('on', !!state.show[key]));
     publishStateDebounced();
   });
 });
@@ -2039,15 +2022,7 @@ window.resetCase = resetCase;
 
 // =================== UI sync ===================
 function syncUIFromState() {
-  document.getElementById('r-hr').value = state.vitals.hr;     document.getElementById('v-hr').textContent = Math.round(state.vitals.hr);
-  document.getElementById('r-sbp').value = state.vitals.sbp;   document.getElementById('v-sbp').textContent = Math.round(state.vitals.sbp);
-  document.getElementById('r-dbp').value = state.vitals.dbp;   document.getElementById('v-dbp').textContent = Math.round(state.vitals.dbp);
-  document.getElementById('r-spo2').value = state.vitals.spo2; document.getElementById('v-spo2').textContent = Math.round(state.vitals.spo2);
-  document.getElementById('r-pi').value = state.vitals.pi;     document.getElementById('v-pi').textContent = state.vitals.pi.toFixed(1);
-  document.getElementById('r-rr').value = state.vitals.rr;     document.getElementById('v-rr').textContent = Math.round(state.vitals.rr);
-  document.getElementById('r-etco2').value = state.vitals.etco2;document.getElementById('v-etco2').textContent = Math.round(state.vitals.etco2);
-  document.getElementById('r-temp').value = state.vitals.temp; document.getElementById('v-temp').textContent = state.vitals.temp.toFixed(1);
-  document.getElementById('i-tempsite').value = state.vitals.tempSite || '耳溫';
+  updateAllVitalUI();
 
   document.querySelectorAll('#rhythm-btns button').forEach(x => x.classList.toggle('active', x.dataset.r === state.rhythm));
   document.querySelectorAll('#ectopy-btns button').forEach(x => x.classList.toggle('active', x.dataset.e === (state.ectopy || 'none')));
