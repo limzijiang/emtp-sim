@@ -1495,6 +1495,76 @@ let client = null;
 let attemptSettled = false;   // guard: error+close must advance broker only once per attempt
 let reconnectFails = 0;       // count failed auto-reconnects to a previously-good broker
 
+// --- Transport selection ---------------------------------------------------
+// The Cloudflare Pages copy of this app talks to our own Workers relay
+// (Durable Objects, one room per session). GitHub Pages and everything else
+// keeps the public MQTT brokers. ?relay=off forces MQTT; ?relay=wss://… overrides.
+const RELAY_BASE = 'wss://emtp-sim-relay.limzijiang5183.workers.dev';
+const relayParam = params.get('relay');
+const useRelay = !params.get('broker') && relayParam !== 'off' &&
+  (!!relayParam || /\.pages\.dev$/i.test(location.hostname));
+const relayUrl = (relayParam && /^wss?:/i.test(relayParam)) ? relayParam : RELAY_BASE;
+
+// Minimal client for the Workers relay, exposing the slice of the MQTT.js API
+// this app uses (connected / on / subscribe / publish / removeAllListeners / end).
+class RelayClient {
+  constructor(url) {
+    this.url = url;
+    this.handlers = {};
+    this.connected = false;
+    this.everConnected = false;
+    this.closedByUser = false;
+    this.subTopics = [];
+    this._open();
+  }
+  on(ev, cb) { (this.handlers[ev] = this.handlers[ev] || []).push(cb); return this; }
+  _emit(ev, ...a) { for (const cb of this.handlers[ev] || []) { try { cb(...a); } catch {} } }
+  _open() {
+    let ws;
+    try { ws = new WebSocket(this.url); } catch (e) { this._emit('error', e); this._scheduleReconnect(); return; }
+    this.ws = ws;
+    ws.onopen = () => {
+      this.connected = true;
+      this.everConnected = true;
+      this._emit('connect');
+      if (this.subTopics.length) this._sendSub();
+      this.pingTimer = setInterval(() => { try { ws.send('{"type":"ping"}'); } catch {} }, 30000);
+    };
+    ws.onmessage = (ev) => {
+      let m; try { m = JSON.parse(ev.data); } catch { return; }
+      if (m.type === 'msg' && (!this.subTopics.length || this.subTopics.includes(m.topic))) {
+        this._emit('message', m.topic, { toString: () => m.payload });
+      }
+    };
+    ws.onerror = () => { this._emit('error', new Error('relay websocket error')); };
+    ws.onclose = () => {
+      this.connected = false;
+      clearInterval(this.pingTimer);
+      this._emit('close');
+      this._scheduleReconnect();
+    };
+  }
+  _scheduleReconnect() {
+    if (this.closedByUser) return;
+    clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = setTimeout(() => { this._emit('reconnect'); this._open(); }, 2000);
+  }
+  _sendSub() { try { this.ws.send(JSON.stringify({ type: 'sub', topics: this.subTopics })); } catch {} }
+  subscribe(topics) { this.subTopics = Array.isArray(topics) ? topics.slice() : [topics]; if (this.connected) this._sendSub(); }
+  publish(topic, payload, opts) {
+    if (!this.connected) return;
+    try { this.ws.send(JSON.stringify({ type: 'pub', topic, payload, retain: !!(opts && opts.retain) })); } catch {}
+  }
+  removeAllListeners() { this.handlers = {}; }
+  end() {
+    this.closedByUser = true;
+    clearTimeout(this.reconnectTimer);
+    clearInterval(this.pingTimer);
+    try { this.ws && this.ws.close(); } catch {}
+    this.connected = false;
+  }
+}
+
 const connbar = document.getElementById('connbar');
 const connStatus = document.getElementById('conn-status');
 
@@ -1562,23 +1632,60 @@ function connectMqtt() {
       advanceBroker();
     }
   });
-  client.on('message', (topic, buf) => {
-    let msg;
-    try { msg = JSON.parse(buf.toString()); } catch { return; }
-    if (topic === topicState) {
-      state = Object.assign(state, msg);
-      updateNumerics();
-      renderPanel();
-      syncBreathSound();
-      if ((state.shockCounter || 0) > lastShockCount) {
-        lastShockCount = state.shockCounter;
-        triggerShock();
-      }
-    } else if (topic === topicAction) {
-      if (msg.type === 'shock') triggerShock(msg.joules);
-      if (msg.type === 'flash') triggerShock(0, msg.text);
+  client.on('message', (topic, buf) => handleBusMessage(topic, buf.toString()));
+}
+
+function handleBusMessage(topic, raw) {
+  let msg;
+  try { msg = JSON.parse(raw); } catch { return; }
+  if (topic === topicState) {
+    state = Object.assign(state, msg);
+    updateNumerics();
+    renderPanel();
+    syncBreathSound();
+    if ((state.shockCounter || 0) > lastShockCount) {
+      lastShockCount = state.shockCounter;
+      triggerShock();
     }
+  } else if (topic === topicAction) {
+    if (msg.type === 'shock') triggerShock(msg.joules);
+    if (msg.type === 'flash') triggerShock(0, msg.text);
+  }
+}
+
+function connectRelay() {
+  connbar.style.display = '';
+  connbar.className = '';
+  connStatus.textContent = '連線雲端中繼…';
+  teardownClient();
+  client = new RelayClient(relayUrl + '/ws/' + sessionId);
+  const thisClient = client;
+  // If the relay never comes up, fall back to the public MQTT brokers.
+  setTimeout(() => {
+    if (client === thisClient && !thisClient.everConnected) {
+      teardownClient();
+      connectMqtt();
+    }
+  }, 8000);
+  client.on('connect', () => {
+    connbar.className = 'connected';
+    connStatus.textContent = '已連線 (雲端中繼)';
+    thisClient.subscribe([topicState, topicAction]);
+    thisClient.publish(topicHello, JSON.stringify({ role: 'display', t: Date.now() }));
+    setTimeout(() => { if (client === thisClient) connbar.style.display = 'none'; }, 2000);
   });
+  client.on('reconnect', () => {
+    connbar.style.display = '';
+    connbar.className = '';
+    connStatus.textContent = '重新連線中…';
+  });
+  client.on('close', () => {
+    if (!thisClient.everConnected) return;
+    connbar.style.display = '';
+    connbar.className = 'error';
+    connStatus.textContent = '已斷線，重新連線中…';
+  });
+  client.on('message', (topic, buf) => handleBusMessage(topic, buf.toString()));
 }
 
 function advanceBroker() {
@@ -1594,7 +1701,7 @@ function advanceBroker() {
   }
 }
 
-connectMqtt();
+if (useRelay) connectRelay(); else connectMqtt();
 
 function triggerShock(joules, label) {
   const flash = document.getElementById('shock-flash');
