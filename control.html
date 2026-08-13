@@ -809,29 +809,10 @@ const broker = params.get('broker') || 'wss://broker.hivemq.com:8884/mqtt';
 // Display label: "房間 1" for room mode, else the raw session id
 document.getElementById('session-id').textContent = usingRoom ? ('房間 ' + roomParam) : sessionId;
 
-// =================== Group rooms (case filtering + password) ===================
-// ?room=nrp / pbls / trauma / ped → controller only offers that group's cases
-// and requires the room password before it will load.
+// =================== Group rooms (case filtering) ===================
+// ?room=nrp / pbls / trauma / ped → controller only offers that group's cases.
 const ROOM_GROUPS = { nrp: 'NRP', pbls: 'PBLS/OHCA', trauma: '創傷', ped: '非創' };
-const ROOM_PASSWORD = '0814';
 const roomGroup = ROOM_GROUPS[roomParam] || null;
-if (roomGroup) {
-  const authKey = 'emtp-sim-auth:' + roomParam;
-  let authed = localStorage.getItem(authKey) === ROOM_PASSWORD;
-  while (!authed) {
-    const pw = prompt(`房間「${roomParam.toUpperCase()}」需要密碼才能進入控制台：`);
-    if (pw === null) {
-      document.body.innerHTML = '<div style="display:flex;height:100vh;align-items:center;justify-content:center;color:#8b949e;font-size:16px;text-align:center;padding:20px">此房間需要密碼。<br>重新整理頁面以再次輸入。</div>';
-      throw new Error('room auth cancelled');
-    }
-    if (pw === ROOM_PASSWORD) {
-      authed = true;
-      localStorage.setItem(authKey, ROOM_PASSWORD);
-    } else {
-      alert('密碼錯誤');
-    }
-  }
-}
 
 // =================== State ===================
 let state = {
