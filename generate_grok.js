@@ -74,6 +74,27 @@ const ITEMS = [
   // ③ Transport: neutral c-spine, ventilation continuing, warming
   { file: 'c9-s3', prompt:
     'A real 8-month-old Taiwanese baby boy secured on an ambulance stretcher with soft head blocks keeping the head and neck in a neutral straight position, blanket folded down to the waist so the bare chest is visible. Eyes closed, pale skin. A mildly swollen reddened area on the forehead, a small faint mark behind one ear, and two small faint older marks on the bare chest and upper arm. A gloved hand continues gentle bag-valve-mask ventilation with the mask over his nose and mouth. ECG electrode stickers on the chest, monitor in the background. Ambulance interior.' + C },
+  // ===== Case 10 — PHPLS NRP four scenarios =====
+  { file: 'c10-s1', prompt:
+    'A real newborn Taiwanese baby girl minutes after an uncomplicated home birth, snugly SWADDLED in a clean white towel so that only the face and one small hand are visible, crying loudly with a wide-open mouth, healthy pink face, lying on a bed. Warm home bedroom lighting. Reassuring healthy newborn scene.' + C },
+  { file: 'c10-s2', prompt:
+    'A real newborn Taiwanese baby lying on a flat padded surface, body from the chest down COVERED by a soft white towel (chest partly visible, lower body fully covered), quiet and not crying, limp arms, pale face with a faint bluish tinge to the lips only. A gloved paramedic hand holds a tiny round infant bag-valve mask sealed over ONLY the nose and mouth, the small self-inflating bag extending upward. Home bedroom setting.' + C },
+  { file: 'c10-s3', prompt:
+    'A real newborn Taiwanese baby on a clinic examination table receiving newborn resuscitation: one rescuer\'s two thumbs placed side by side on the LOWER HALF of the tiny sternum just below the nipple line, hands encircling the chest with fingers behind the back, while a second gloved hand holds a tiny round mask over the nose and mouth with a small ventilation bag. Pale skin, faint bluish lip tinge, small ECG electrode stickers on the chest. Bright clinic lighting.' + C },
+  { file: 'c10-s4', prompt:
+    'A very small real premature Taiwanese baby (born at 28 weeks, tiny and thin) inside an ambulance, body and limbs wrapped up to the shoulders in a clear food-grade plastic bag for warmth, wearing a tiny knitted cap, chest visible through the clear plastic with fast breathing, skin slightly reddish-pink and translucent as premature infants are, a small SpO2 sensor wrapped on the RIGHT hand/wrist, an oxygen tube nearby. Warming blanket beneath. Ambulance interior, monitor in background.' + C },
+
+  // ===== Case 11 — NRP PPV + MRSOPA progression =====
+  { file: 'c11-s1', prompt:
+    'A real newborn Taiwanese baby boy about ten minutes after a home birth, lying mostly WRAPPED in soft towels with only the face, shoulders and one arm visible, quiet and not crying, eyes closed, limp, pale face with a faint bluish tinge to the lips. A midwife\'s hands gently rub the baby through the towel to stimulate. Home bedroom with warm light.' + C },
+  { file: 'c11-s2', prompt:
+    'A real newborn Taiwanese baby boy lying supine on a firm padded surface receiving effective positive-pressure ventilation: a gloved paramedic hand seals a tiny round infant mask over ONLY the nose and mouth in a C-E grip, the small self-inflating bag mid-squeeze, the tiny chest visibly rising. Skin color turning from pale toward pink. Small ECG electrode stickers on the chest. Home setting.' + C },
+  { file: 'c11-s3', prompt:
+    'A real newborn Taiwanese baby boy lying supine with head in sniffing position on a small shoulder roll, receiving two-person mask ventilation correction: one rescuer holds a tiny round mask sealed on the nose and mouth with BOTH hands using two C-E grips lifting the jaw, while a second gloved hand squeezes the small ventilation bag. A bulb suction syringe lies next to the head. Pale skin, faint bluish lip tinge, ECG stickers on chest. Clinical training reference, home setting.' + C },
+  { file: 'c11-s4', prompt:
+    'Close-up of newborn CPR technique on a real Taiwanese newborn baby boy lying on a firm surface: a rescuer\'s TWO GLOVED THUMBS ONLY touch the front of the chest, pressed side by side on the lower half of the tiny sternum just below the nipple line; the rest of both hands wrap AROUND THE SIDES of the torso with fingers BEHIND the baby\'s back — no palms or fingers lie flat on the front of the chest. At the same time a second rescuer holds a tiny round mask SEALED ON the baby\'s nose and mouth, attached to a small ventilation bag. Pale skin with faint bluish lip tinge, ECG electrode stickers on the chest. Urgent but controlled scene. Home setting.' + C },
+  { file: 'c11-s5', prompt:
+    'A real newborn Taiwanese baby boy recovered after resuscitation, wrapped warmly in a soft blanket with a tiny knitted cap, healthy pink skin, eyes gently open, breathing on his own, small ECG electrode stickers visible at the chest opening of the blanket, a paramedic gloved hand resting reassuringly beside him. Portable monitor with green numbers in the background. Ambulance interior, warm light.' + C },
 ];
 
 async function generate(prompt) {
