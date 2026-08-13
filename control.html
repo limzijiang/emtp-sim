@@ -809,6 +809,30 @@ const broker = params.get('broker') || 'wss://broker.hivemq.com:8884/mqtt';
 // Display label: "房間 1" for room mode, else the raw session id
 document.getElementById('session-id').textContent = usingRoom ? ('房間 ' + roomParam) : sessionId;
 
+// =================== Group rooms (case filtering + password) ===================
+// ?room=nrp / pbls / trauma / ped → controller only offers that group's cases
+// and requires the room password before it will load.
+const ROOM_GROUPS = { nrp: 'NRP', pbls: 'PBLS/OHCA', trauma: '創傷', ped: '非創' };
+const ROOM_PASSWORD = '0814';
+const roomGroup = ROOM_GROUPS[roomParam] || null;
+if (roomGroup) {
+  const authKey = 'emtp-sim-auth:' + roomParam;
+  let authed = localStorage.getItem(authKey) === ROOM_PASSWORD;
+  while (!authed) {
+    const pw = prompt(`房間「${roomParam.toUpperCase()}」需要密碼才能進入控制台：`);
+    if (pw === null) {
+      document.body.innerHTML = '<div style="display:flex;height:100vh;align-items:center;justify-content:center;color:#8b949e;font-size:16px;text-align:center;padding:20px">此房間需要密碼。<br>重新整理頁面以再次輸入。</div>';
+      throw new Error('room auth cancelled');
+    }
+    if (pw === ROOM_PASSWORD) {
+      authed = true;
+      localStorage.setItem(authKey, ROOM_PASSWORD);
+    } else {
+      alert('密碼錯誤');
+    }
+  }
+}
+
 // =================== State ===================
 let state = {
   patient: {
@@ -1839,8 +1863,13 @@ const CASES = [
 ];
 
 const CASE_IDX_KEY = `emtp-sim-case-idx:${sessionId}`;
+// Cases visible in this room (group rooms only offer their own group)
+function caseVisible(i) { return !roomGroup || CASES[i].group === roomGroup; }
+function firstVisibleCase() { for (let i = 0; i < CASES.length; i++) if (caseVisible(i)) return i; return 0; }
 let activeCaseIdx = parseInt(localStorage.getItem(CASE_IDX_KEY) || '0', 10);
-if (isNaN(activeCaseIdx) || activeCaseIdx < 0 || activeCaseIdx >= CASES.length) activeCaseIdx = 0;
+if (isNaN(activeCaseIdx) || activeCaseIdx < 0 || activeCaseIdx >= CASES.length || !caseVisible(activeCaseIdx)) {
+  activeCaseIdx = firstVisibleCase();
+}
 
 function activeCase() { return CASES[activeCaseIdx]; }
 
@@ -1875,8 +1904,10 @@ function segVitalsLine(seg) {
 function buildCaseSelector() {
   const sel = document.getElementById('case-selector');
   // group cases by their `group` field, preserving first-seen order
+  // (group rooms only list their own group's cases)
   const groups = [];
   CASES.forEach((c, i) => {
+    if (!caseVisible(i)) return;
     const gname = c.group || '其他';
     let g = groups.find(x => x.name === gname);
     if (!g) { g = { name: gname, items: [] }; groups.push(g); }
@@ -1918,7 +1949,7 @@ function renderCaseUI() {
 
 function selectCase(idx) {
   idx = parseInt(idx, 10);
-  if (isNaN(idx) || idx < 0 || idx >= CASES.length) return;
+  if (isNaN(idx) || idx < 0 || idx >= CASES.length || !caseVisible(idx)) return;
   activeCaseIdx = idx;
   localStorage.setItem(CASE_IDX_KEY, String(activeCaseIdx));
   renderCaseUI();
