@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EMTP 案例模擬系統 · 入口</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: -apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 28px 18px 60px; }
+
+  header.hero {
+    text-align: center;
+    padding: 18px 0 6px;
+  }
+  header.hero h1 { font-size: 26px; margin: 0 0 6px; }
+  header.hero p { color: #8b949e; margin: 0; font-size: 14px; }
+
+  .pw-banner {
+    background: #1c2128;
+    border: 1px solid #30363d;
+    border-left: 4px solid #d29922;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 22px 0;
+    font-size: 15px;
+  }
+  .pw-banner code {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #d29922;
+    letter-spacing: 2px;
+  }
+
+  .group-card {
+    background: #161b22;
+    border: 1px solid #2a2f38;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+  .group-card h2 {
+    margin: 0 0 12px;
+    font-size: 19px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    padding: 13px 8px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .btn .sub { display: block; font-size: 11px; font-weight: 400; opacity: 0.8; margin-top: 2px; }
+  .btn.display { background: #1f6feb; color: #fff; }
+  .btn.display:active { background: #1a5cc8; }
+  .btn.control { background: #21262d; color: #e6edf3; border-color: #30363d; }
+  .btn.control:active { background: #2d333b; }
+
+  .section {
+    background: #161b22;
+    border: 1px solid #2a2f38;
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-top: 26px;
+  }
+  .section h2 { font-size: 18px; margin: 0 0 12px; }
+  .section ol { margin: 0; padding-left: 22px; }
+  .section li { margin-bottom: 10px; font-size: 15px; }
+  .section li b { color: #79c0ff; }
+  .hint {
+    color: #8b949e;
+    font-size: 13px;
+    margin-top: 14px;
+    border-top: 1px dotted #2a2f38;
+    padding-top: 12px;
+  }
+
+  footer.contact {
+    margin-top: 34px;
+    text-align: center;
+    color: #8b949e;
+    font-size: 14px;
+    border-top: 1px solid #2a2f38;
+    padding-top: 22px;
+  }
+  footer.contact .name { color: #e6edf3; font-size: 16px; font-weight: 700; }
+  footer.contact .title { font-size: 13px; margin: 2px 0 10px; }
+  footer.contact a { color: #79c0ff; text-decoration: none; }
+  footer.contact .row { margin: 3px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>🏥 EMTP 案例模擬系統</h1>
+    <p>每組兩個連結：<b>大銀幕</b>開在投影的電腦上，<b>控制台</b>開在老師自己的手機上。<br>兩個網頁會自動連動（跨網路即時同步）。</p>
+  </header>
+
+  <div class="pw-banner">
+    🔑 控制台密碼（四組相同）：<code>0814</code>　每台裝置只需輸入一次
+  </div>
+
+  <div class="group-card">
+    <h2>🍼 NRP 組</h2>
+    <div class="btn-row">
+      <a class="btn display" href="display.html?room=nrp">🖥️ 大銀幕<span class="sub">投影電腦開</span></a>
+      <a class="btn control" href="control.html?room=nrp">📱 控制台<span class="sub">老師手機開 · 需密碼</span></a>
+    </div>
+  </div>
+
+  <div class="group-card">
+    <h2>💓 PBLS/OHCA 組</h2>
+    <div class="btn-row">
+      <a class="btn display" href="display.html?room=pbls">🖥️ 大銀幕<span class="sub">投影電腦開</span></a>
+      <a class="btn control" href="control.html?room=pbls">📱 控制台<span class="sub">老師手機開 · 需密碼</span></a>
+    </div>
+  </div>
+
+  <div class="group-card">
+    <h2>🩹 創傷組</h2>
+    <div class="btn-row">
+      <a class="btn display" href="display.html?room=trauma">🖥️ 大銀幕<span class="sub">投影電腦開</span></a>
+      <a class="btn control" href="control.html?room=trauma">📱 控制台<span class="sub">老師手機開 · 需密碼</span></a>
+    </div>
+  </div>
+
+  <div class="group-card">
+    <h2>🧒 非創組</h2>
+    <div class="btn-row">
+      <a class="btn display" href="display.html?room=ped">🖥️ 大銀幕<span class="sub">投影電腦開</span></a>
+      <a class="btn control" href="control.html?room=ped">📱 控制台<span class="sub">老師手機開 · 需密碼</span></a>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>⏱️ 第一次使用 30 秒上手</h2>
+    <ol>
+      <li><b>投影電腦</b>開大銀幕連結 → 按 <b>F11 全螢幕</b> → 點右上角紅色「<b>開啟監視器聲音</b>」按鈕（要有心跳聲/警報聲的話必須點一下）</li>
+      <li><b>手機</b>開控制台連結 → 輸入密碼 <b>0814</b> → 直接落在「教案」頁</li>
+      <li>教案頁由上到下操作：
+        <ul style="margin-top:6px; padding-left:18px;">
+          <li><b>選擇教案</b> → 按「↻ 載入此案病人資料」（大銀幕會顯示病人基本資料；monitor 全黑 = 尚未接上）</li>
+          <li><b>病人圖片</b>：點縮圖 → 投到大銀幕右半邊</li>
+          <li><b>vital sign 套組</b>：點階段卡（①②③…）→ 一鍵套用該時段全部生命徵象與心律</li>
+          <li><b>Vital sign 開關與調整</b>：學員說「接上 EKG／量血壓／夾血氧」時，把對應開關打開，該項目才會出現在大銀幕；滑桿可即時微調數值（紅色兩端是極端值）</li>
+        </ul>
+      </li>
+    </ol>
+    <div class="hint">
+      四組房間互相獨立，只會控制到自己組的大銀幕，不會互相干擾。網路只要能上網即可（手機 4G 和電腦 WiFi 不同網路也能連動）。若顯示「重新連線中」，等 3–5 秒會自動換線重連。
+    </div>
+  </div>
+
+  <footer class="contact">
+    <div class="name">Lim Zi Jiang 林自強 M.D.</div>
+    <div class="title">輔大醫院 急診 主治醫師</div>
+    <div class="row">✉️ <a href="mailto:limzijiang5183@gmail.com">limzijiang5183@gmail.com</a></div>
+    <div class="row">📘 Facebook：<a href="https://www.facebook.com/search/top?q=%E6%9E%97%E8%87%AA%E5%BC%B7" target="_blank" rel="noopener">林自強</a></div>
+  </footer>
+
+</div>
+</body>
+</html>
