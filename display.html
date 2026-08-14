@@ -1184,11 +1184,15 @@ function computeAlarmLevel() {
 let lastQrsBeatT = -1;
 function audioTick(nowMs) {
   if (!monitorAudio.ctx) return;
+  const s = state.show || { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true };
+  // Pulse tone only once a channel that carries it (ECG or SpO₂) is attached.
+  // Still advance the beat cursor while hidden so re-enabling doesn't burst-play a backlog.
+  const qrsAudible = s.ecg || s.spo2;
   const t = waveforms[0]?.simTime;
   if (t != null && state.rhythm !== 'VF' && state.rhythm !== 'Asystole') {
     for (const b of beatSchedule.beats) {
       if (b.t > lastQrsBeatT && b.t <= t && !b.dropped) {
-        monitorAudio.qrsTone();
+        if (qrsAudible) monitorAudio.qrsTone();
         lastQrsBeatT = b.t;
       }
     }
