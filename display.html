@@ -936,6 +936,20 @@ class Waveform {
     const t = (v - lo) / (hi - lo);
     return this.h - t * this.h;
   }
+  // Advance by real elapsed seconds. Carrying the fractional remainder keeps
+  // simTime locked to the wall clock, so one simulated second is one real
+  // second — which is what makes the pulse tone land exactly on the shown HR.
+  advance(dtSec) {
+    this.debt = (this.debt || 0) + dtSec * this.pps;
+    let n = Math.floor(this.debt);
+    if (n <= 0) return;
+    this.debt -= n;
+    const maxCatchUp = Math.ceil(this.pps * 0.25);
+    if (n > maxCatchUp) n = maxCatchUp;
+    // Keep the clock running even if this canvas is collapsed to zero size.
+    if (this.w <= 0 || this.h <= 0) { this.simTime += n / this.pps; return; }
+    this.step(n);
+  }
   step(samplesPerFrame) {
     if (this.w <= 0 || this.h <= 0) return;
     const ctx = this.ctx;
@@ -1029,12 +1043,10 @@ function buildWaveforms() {
 
 let lastFrame = 0;
 function tick(now) {
-  const dt = lastFrame ? (now - lastFrame) / 1000 : 0;
+  // Clamp long gaps (tab throttling) so we never fast-forward a huge burst.
+  const dt = lastFrame ? Math.min(0.25, (now - lastFrame) / 1000) : 0;
   lastFrame = now;
-  for (const wf of waveforms) {
-    const samples = Math.min(20, Math.max(1, Math.round(dt * wf.pps)));
-    wf.step(samples);
-  }
+  for (const wf of waveforms) wf.advance(dt);
   audioTick(now);
   requestAnimationFrame(tick);
 }
@@ -1080,6 +1092,8 @@ class MonitorAudio {
     osc.stop(t + duration + 0.04);
   }
   // QRS / pulse tone, pitch varies with SpO2 (Zoll style)
+  // Pulse tone — one beep per beat, so its RATE is the heart rate and its PITCH
+  // encodes SpO2 (the convention real monitors use).
   qrsTone() {
     if (!this.qrsEnabled || !this.ctx || this.muted) return;
     const spo2 = state.vitals.spo2 ?? 98;
@@ -1092,17 +1106,30 @@ class MonitorAudio {
     if (!this.ctx || this.muted) return;
     if (this.currentLevel === 'none') return;
     if (nowMs < this.nextAlarmTime) return;
-    let cycleMs, beepCount, freq, beepGap, beepDur, vol;
+    // IEC 60601-1-8 melodic alarm bursts. The cadence is deliberately FIXED and
+    // independent of heart rate: clinicians identify priority by this rhythm, so
+    // it must sound the same whether the patient is at HR 40 or 190. The
+    // heart-rate-linked sound is the pulse tone (qrsTone), not the alarm.
+    //   high   : 10 pulses — two groups of 5 with a 3-2 rhythm, burst repeats
+    //   medium : 3 pulses, slower repeat
+    //   low    : 2 pulses, slow repeat
+    let cycleMs, freq, dur, vol, offsets;
+    const P = 150;   // nominal pulse spacing within a group
     if (this.currentLevel === 'high') {
-      cycleMs = 2500; beepCount = 5; freq = 880; beepGap = 170; beepDur = 0.13; vol = 0.22;
+      cycleMs = 5000; freq = 960; dur = 0.11; vol = 0.22;
+      // group of 5 (3-2 rhythm), pause, same group again
+      const g = [0, P, 2 * P, 3.5 * P, 4.5 * P];
+      offsets = g.concat(g.map(x => x + 6.5 * P));
     } else if (this.currentLevel === 'medium') {
-      cycleMs = 4500; beepCount = 3; freq = 660; beepGap = 220; beepDur = 0.18; vol = 0.18;
+      cycleMs = 9000; freq = 700; dur = 0.16; vol = 0.18;
+      offsets = [0, 1.6 * P, 3.2 * P];
     } else { // low
-      cycleMs = 12000; beepCount = 2; freq = 480; beepGap = 320; beepDur = 0.22; vol = 0.14;
+      cycleMs = 20000; freq = 520; dur = 0.2; vol = 0.13;
+      offsets = [0, 2.2 * P];
     }
     this.nextAlarmTime = nowMs + cycleMs;
-    for (let i = 0; i < beepCount; i++) {
-      setTimeout(() => this.beep(freq, beepDur, vol, 'triangle'), i * beepGap);
+    for (const off of offsets) {
+      setTimeout(() => this.beep(freq, dur, vol, 'triangle'), off);
     }
   }
 }
