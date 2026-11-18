@@ -458,6 +458,28 @@
   #sound-toggle.muted { background: #555; animation: none; }
   #sound-toggle:hover { filter: brightness(1.1); }
 
+  #volume-ctl {
+    position: fixed;
+    top: 66px; right: 14px;
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(22,27,34,0.88);
+    border: 1px solid #30363d;
+    color: #e6edf3;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    z-index: 60;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    user-select: none;
+  }
+  #volume-ctl input[type=range] { width: 110px; accent-color: #2ea043; cursor: pointer; }
+  #volume-ctl .vol-btn {
+    background: #21262d; color: #e6edf3; border: 1px solid #30363d;
+    border-radius: 4px; width: 22px; height: 22px; line-height: 18px;
+    font-size: 14px; padding: 0; cursor: pointer; font-family: inherit;
+  }
+  #volume-val { min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
+
 </style>
 </head>
 <body>
@@ -466,6 +488,13 @@
 <div class="shock-flash" id="shock-flash"></div>
 <div class="shock-label" id="shock-label">SHOCK DELIVERED</div>
 <button id="sound-toggle">🔇 點此開啟監視器聲音</button>
+<div id="volume-ctl" title="監視器音量">
+  <span>音量</span>
+  <button class="vol-btn" id="vol-down" aria-label="降低音量">−</button>
+  <input type="range" id="volume-slider" min="0" max="200" step="5" value="100" aria-label="監視器音量">
+  <button class="vol-btn" id="vol-up" aria-label="提高音量">+</button>
+  <span id="volume-val">100%</span>
+</div>
 
 <div class="display">
   <div class="monitor">
@@ -1060,6 +1089,7 @@ class MonitorAudio {
     this.qrsEnabled = true;
     this.nextAlarmTime = 0;
     this.currentLevel = 'none';
+    this.volume = 1;
   }
   enable() {
     if (this.ctx) { this.ctx.resume?.(); return; }
@@ -1067,13 +1097,17 @@ class MonitorAudio {
     if (!AC) return;
     this.ctx = new AC();
     this.master = this.ctx.createGain();
-    this.master.gain.value = this.muted ? 0 : 1;
+    this.master.gain.value = this.muted ? 0 : this.volume;
     this.master.connect(this.ctx.destination);
     if (this.ctx.state === 'suspended') this.ctx.resume();
   }
   setMuted(m) {
     this.muted = m;
-    if (this.master) this.master.gain.value = m ? 0 : 1;
+    if (this.master) this.master.gain.value = m ? 0 : this.volume;
+  }
+  setVolume(v) {
+    this.volume = v;
+    if (this.master && !this.muted) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.02);
   }
   beep(freq, duration, volume = 0.1, waveType = 'sine') {
     if (!this.ctx || this.muted) return;
@@ -1147,8 +1181,13 @@ class BreathSound {
     const el = new Audio(`audio/${type}.ogg`);
     el.loop = true;
     el.preload = 'auto';
-    el.volume = type === 'wheeze' ? 0.85 : 0.85;
+    el.volume = BreathSound.elVolume();
     this.elements[type] = el;
+  }
+  // HTMLAudioElement volume caps at 1, so boost above 100% saturates here
+  static elVolume() { return Math.min(1, 0.85 * monitorAudio.volume); }
+  setVolume() {
+    for (const el of Object.values(this.elements)) el.volume = BreathSound.elVolume();
   }
   setMuted(m) {
     for (const el of Object.values(this.elements)) el.muted = m;
@@ -1249,6 +1288,32 @@ soundBtn.addEventListener('click', () => {
   soundBtn.classList.toggle('enabled', !monitorAudio.muted);
   soundBtn.textContent = monitorAudio.muted ? '🔇 靜音 (點擊解除)' : '🔊 監視器聲音 ON';
 });
+
+// Volume slider (0–200%), remembered per browser
+const volSlider = document.getElementById('volume-slider');
+const volVal = document.getElementById('volume-val');
+const VOL_KEY = 'emtp-sim-display-volume';
+function applyVolume(pct, save = true) {
+  pct = Math.max(0, Math.min(200, Math.round(pct / 5) * 5));
+  volSlider.value = pct;
+  volVal.textContent = pct + '%';
+  monitorAudio.setVolume(pct / 100);
+  breathSound.setVolume();
+  if (save) { try { localStorage.setItem(VOL_KEY, String(pct)); } catch {} }
+}
+try {
+  const saved = parseInt(localStorage.getItem(VOL_KEY), 10);
+  applyVolume(Number.isFinite(saved) ? saved : 100, false);
+} catch { applyVolume(100, false); }
+let volPreviewTimer = null;
+volSlider.addEventListener('input', () => {
+  applyVolume(+volSlider.value);
+  // short preview beep so the instructor hears the new level
+  clearTimeout(volPreviewTimer);
+  volPreviewTimer = setTimeout(() => monitorAudio.beep(880, 0.08, 0.15, 'sine'), 120);
+});
+document.getElementById('vol-down').addEventListener('click', () => { applyVolume(+volSlider.value - 10); monitorAudio.beep(880, 0.08, 0.15, 'sine'); });
+document.getElementById('vol-up').addEventListener('click', () => { applyVolume(+volSlider.value + 10); monitorAudio.beep(880, 0.08, 0.15, 'sine'); });
 
 // =================== Numeric & UI sync ===================
 function applyVisibility() {
