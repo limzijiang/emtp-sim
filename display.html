@@ -84,6 +84,9 @@
   /* A hidden channel keeps its fixed 1/5 slot; only its contents disappear */
   .vs-row.ch-hidden .wave > *,
   .vs-row.ch-hidden .numeric-box { visibility: hidden; }
+  /* SpO2 probe on, ECG leads off: HR box shows pleth pulse rate, no ECG trace */
+  .vs-row.pr-only .wave > * { visibility: hidden; }
+  .numeric-box .nb-head .hr-src { font-size: 0.55em; opacity: 0.85; margin-left: 6px; }
 
   .wave {
     position: relative;
@@ -510,7 +513,7 @@
           <canvas id="cv-ecg"></canvas>
         </div>
         <div class="numeric-box green" id="box-hr">
-          <div class="nb-head">HR<span class="units">bpm</span></div>
+          <div class="nb-head">HR<span class="hr-src" id="hr-src"></span><span class="units">bpm</span></div>
           <div class="value" id="v-hr">75</div>
         </div>
       </div>
@@ -1239,24 +1242,26 @@ function syncBreathSound() {
 function computeAlarmLevel() {
   const v = state.vitals || {};
   const s = state.show || { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true };
+  const noPleth = state.rhythm === 'VF' || state.rhythm === 'Asystole' || state.rhythm === 'PEA';
+  const hrSrc = s.ecg || (s.spo2 && !noPleth); // HR from ECG, else pulse rate from pleth
 
   // Lethal rhythms (only alarm if ECG channel is on)
   if (s.ecg && (state.rhythm === 'VF' || state.rhythm === 'VT' || state.rhythm === 'pVT' || state.rhythm === 'Asystole' || state.rhythm === 'PEA')) return 'high';
 
   // HIGH
   if (s.spo2 && v.spo2 != null && v.spo2 < 85) return 'high';
-  if (s.ecg && v.hr != null && (v.hr < 30 || v.hr > 200)) return 'high';
+  if (hrSrc && v.hr != null && (v.hr < 30 || v.hr > 200)) return 'high';
   if (s.nibp && v.sbp != null && v.sbp < 70) return 'high';
 
   // MEDIUM
   if (s.spo2 && v.spo2 != null && v.spo2 < 90) return 'medium';
-  if (s.ecg && v.hr != null && (v.hr < 40 || v.hr > 150)) return 'medium';
+  if (hrSrc && v.hr != null && (v.hr < 40 || v.hr > 150)) return 'medium';
   if (s.co2 && v.etco2 != null && (v.etco2 < 20 || v.etco2 > 55)) return 'medium';
   if (s.nibp && v.sbp != null && (v.sbp < 90 || v.sbp > 200)) return 'medium';
 
   // LOW
   if (s.spo2 && v.spo2 != null && v.spo2 < 94) return 'low';
-  if (s.ecg && v.hr != null && (v.hr < 50 || v.hr > 130)) return 'low';
+  if (hrSrc && v.hr != null && (v.hr < 50 || v.hr > 130)) return 'low';
   if (s.co2 && v.etco2 != null && (v.etco2 < 30 || v.etco2 > 50)) return 'low';
   if (s.nibp && v.sbp != null && (v.sbp < 100 || v.sbp > 160)) return 'low';
 
@@ -1269,7 +1274,8 @@ function audioTick(nowMs) {
   const s = state.show || { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true };
   // Pulse tone only once a channel that carries it (ECG or SpO₂) is attached.
   // Still advance the beat cursor while hidden so re-enabling doesn't burst-play a backlog.
-  const qrsAudible = s.ecg || s.spo2;
+  // SpO₂-only in PEA: no pulse → no pleth → no pulse tone
+  const qrsAudible = s.ecg || (s.spo2 && state.rhythm !== 'PEA');
   const t = waveforms[0]?.simTime;
   if (t != null && state.rhythm !== 'VF' && state.rhythm !== 'Asystole') {
     for (const b of beatSchedule.beats) {
@@ -1335,7 +1341,12 @@ document.getElementById('vol-up').addEventListener('click', () => { applyVolume(
 function applyVisibility() {
   const show = state.show || { ecg: true, spo2: true, co2: true, rr: true, nibp: true, temp: true };
   // Rows keep their fixed 1/5 slot; hiding a channel only blanks its contents
-  document.getElementById('row-hr').classList.toggle('ch-hidden', !show.ecg);
+  // HR number comes from ECG, or from the pleth when only the SpO2 probe is on
+  const prOnly = !show.ecg && show.spo2;
+  const rowHr = document.getElementById('row-hr');
+  rowHr.classList.toggle('ch-hidden', !show.ecg && !show.spo2);
+  rowHr.classList.toggle('pr-only', prOnly);
+  document.getElementById('hr-src').textContent = prOnly ? '(SpO₂)' : '';
   document.getElementById('row-nibp').classList.toggle('ch-hidden', !show.nibp);
   document.getElementById('row-spo2').classList.toggle('ch-hidden', !show.spo2);
   document.getElementById('row-co2').classList.toggle('ch-hidden', !show.co2);
@@ -1345,10 +1356,12 @@ function applyVisibility() {
 
 function updateNumerics() {
   applyVisibility();
-  document.getElementById('v-hr').textContent = Math.round(state.vitals.hr);
-  document.getElementById('v-spo2').textContent = Math.round(state.vitals.spo2);
   // Pulse rate derived from the pleth: matches HR while perfusing, blank in non-perfusing rhythms
   const noPleth = state.rhythm === 'VF' || state.rhythm === 'Asystole' || state.rhythm === 'PEA';
+  const shw = state.show || {};
+  const hrFromPleth = !shw.ecg && shw.spo2;
+  document.getElementById('v-hr').textContent = (hrFromPleth && noPleth) ? '--' : Math.round(state.vitals.hr);
+  document.getElementById('v-spo2').textContent = Math.round(state.vitals.spo2);
   document.getElementById('v-pr').textContent = noPleth ? '--' : Math.round(state.vitals.hr);
   document.getElementById('v-pi').textContent = (state.vitals.pi || 0).toFixed(1);
   document.getElementById('v-rr').textContent = Math.round(state.vitals.rr);
@@ -1363,7 +1376,7 @@ function updateNumerics() {
 
   // Alarms (target boxes via their value element so palette changes don't break them)
   const hrBox = document.getElementById('v-hr').closest('.numeric-box');
-  hrBox.classList.toggle('alarm-high', state.vitals.hr < 40 || state.vitals.hr > 140);
+  hrBox.classList.toggle('alarm-high', !(hrFromPleth && noPleth) && (state.vitals.hr < 40 || state.vitals.hr > 140));
   const spo2Box = document.getElementById('v-spo2').closest('.numeric-box');
   spo2Box.classList.toggle('alarm-high', state.vitals.spo2 < 90);
   const co2Box = document.getElementById('v-etco2').closest('.numeric-box');
