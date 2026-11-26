@@ -774,7 +774,22 @@ function nextBeat(lastT, st) {
   } else if (st.ectopy === 'PAC' && Math.random() < 0.15) {
     beat.t = lastT + baseRR * 0.7;
   }
+  beat.hr = hr;
   return beat;
+}
+
+// Rate-dependent intervals for conducted narrow beats. With fixed intervals
+// (P 180 ms before QRS, T peak 210 ms after) a sinus tach at ~150 puts the next
+// P exactly on top of the previous T, so it reads as P-less SVT. Real hearts
+// shorten PR and QT as rate rises, which keeps the P visible on the T downslope.
+function beatTiming(beat) {
+  const hr = Math.max(40, Math.min(200, beat.hr || 75));
+  const rrFrac = Math.min(1, Math.sqrt((60 / hr) / 0.8)); // Bazett-style, 1.0 at HR ≤ 75
+  return {
+    pr: Math.max(0.11, Math.min(0.17, 0.17 - (hr - 75) * 0.0006)), // P peak → QRS
+    tAt: 0.21 * rrFrac,                                           // QRS → T peak
+    tSigma: 0.05 * rrFrac,
+  };
 }
 
 function beatContribution(dt, beat, lead) {
@@ -783,11 +798,12 @@ function beatContribution(dt, beat, lead) {
   const inv = beat.inverted ? -1 : 1;
   const sc = beat.morphScale || 1;
   const prDelay = beat.prDelay || 0;
-  const pAt = -0.18 + (beat.longPR ? -0.08 : 0) - prDelay * 0.5;
+  const tm = beatTiming(beat);
+  const pAt = -tm.pr + (beat.longPR ? -0.08 : 0) - prDelay * 0.5;
   const qrsAt = 0 + prDelay;
 
   if (!beat.skipP && !beat.dropped) {
-    v += 0.15 * f.P * gauss(dt, pAt, 0.025);
+    v += 0.2 * f.P * gauss(dt, pAt, 0.028);
   }
 
   if (beat.dropped) return v;
@@ -804,7 +820,7 @@ function beatContribution(dt, beat, lead) {
     v += 0.1 * f.Q * gauss(dt, qrsAt - 0.022, 0.008);
     v += 1.0 * f.R * gauss(dt, qrsAt, 0.012);
     v += 0.3 * f.S * gauss(dt, qrsAt + 0.025, 0.014);
-    v += 0.32 * f.T * gauss(dt, qrsAt + 0.21, 0.05);
+    v += 0.32 * f.T * gauss(dt, qrsAt + tm.tAt, tm.tSigma);
   }
 
   // ST elevation/depression
